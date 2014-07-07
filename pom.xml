@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+
+    <parent>
+        <groupId>com.bazaarvoice.dropwizard</groupId>
+        <artifactId>parent</artifactId>
+        <version>0.0.1-SNAPSHOT</version>
+        <relativePath>parent/pom.xml</relativePath>
+    </parent>
+
+    <name>Dropwizard Caching Bundle Complete</name>
+
+    <artifactId>dropwizard-caching-bundle-complete</artifactId>
+    <packaging>pom</packaging>
+
+     <scm>
+        <url>https://github.com/bazaarvoice/dropwizard-caching-bundle</url>
+        <connection>scm:git:git@github.com:bazaarvoice/dropwizard-caching-bundle.git</connection>
+        <developerConnection>scm:git:git@github.com:bazaarvoice/dropwizard-caching-bundle.git</developerConnection>
+        <tag>HEAD</tag>
+    </scm>
+
+    <modules>
+        <module>parent</module>
+        <module>bundle</module>
+        <module>example</module>
+    </modules>
+</project>
