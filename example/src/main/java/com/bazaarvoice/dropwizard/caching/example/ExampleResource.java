@@ -18,6 +18,7 @@ public class ExampleResource {
     @Path("/test")
     @CacheControl(maxAge = 60)
     public ExampleResult getTestData() {
+//        throw new RuntimeException("uh oh");
         return new ExampleResult(_count++);
     }
 

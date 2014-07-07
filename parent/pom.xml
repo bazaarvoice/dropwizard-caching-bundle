@@ -20,6 +20,8 @@
 
         <dropwizard.version>0.7.1</dropwizard.version>
 
+        <spymemcached.version>2.11.3</spymemcached.version>
+
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
     </properties>
@@ -32,6 +34,12 @@
                 <groupId>io.dropwizard</groupId>
                 <artifactId>dropwizard-core</artifactId>
                 <version>${dropwizard.version}</version>
+            </dependency>
+
+            <dependency>
+                <groupId>net.spy</groupId>
+                <artifactId>spymemcached</artifactId>
+                <version>${spymemcached.version}</version>
             </dependency>
 
             <dependency>

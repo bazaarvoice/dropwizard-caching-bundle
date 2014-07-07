@@ -25,5 +25,6 @@
         <module>parent</module>
         <module>bundle</module>
         <module>example</module>
+        <module>memcached</module>
     </modules>
 </project>

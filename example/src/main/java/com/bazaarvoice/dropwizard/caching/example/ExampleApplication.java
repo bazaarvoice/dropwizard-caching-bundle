@@ -3,11 +3,14 @@ package com.bazaarvoice.dropwizard.caching.example;
 import com.bazaarvoice.dropwizard.caching.CachingBundle;
 import com.bazaarvoice.dropwizard.caching.CachingConfiguration;
 import com.bazaarvoice.dropwizard.caching.LocalCacheConfiguration;
+import com.bazaarvoice.dropwizard.caching.memcached.MemcachedResponseStoreConfiguration;
 import io.dropwizard.Application;
 import io.dropwizard.Configuration;
 import io.dropwizard.setup.Bootstrap;
 import io.dropwizard.setup.Environment;
 import io.dropwizard.util.Duration;
+
+import java.net.InetSocketAddress;
 
 public class ExampleApplication extends Application<Configuration> {
     @Override
@@ -17,6 +20,8 @@ public class ExampleApplication extends Application<Configuration> {
                                         .maximumSize(100)
                                         .expire(Duration.seconds(10))
                         )
+                        .store(new MemcachedResponseStoreConfiguration()
+                                .servers(new InetSocketAddress("localhost", 11211)))
                 )
         );
     }
