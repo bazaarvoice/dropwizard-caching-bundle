@@ -55,7 +55,7 @@ public class CachingConfiguration {
                 ? _store.get().createStore()
                 : null;
 
-        if (_store.isPresent()) {
+        if (_store.isPresent() && _store.get().isEnabled()) {
             localCache = _local.newCacheBuilder().build(new CacheLoader<String, Optional<CachedResponse>>() {
                 public Optional<CachedResponse> load(String key) throws Exception {
                     return store.get(key);
