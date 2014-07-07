@@ -77,12 +77,6 @@ public class CachingBundle implements Bundle {
                             }
                         }
                     });
-
-                    if (httpResponse.getStatus() >= 500 && httpResponse.getStatus() < 600) {
-                        // No caching of server errors. Specifically, this can happen if the response status is set
-                        // directly (not the result of an exception).
-                        httpResponse.setHeader(HttpHeaders.CACHE_CONTROL, null);
-                    }
                 }
 
                 @Override

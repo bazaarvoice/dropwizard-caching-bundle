@@ -14,6 +14,7 @@ import org.joda.time.DateTime;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import javax.ws.rs.WebApplicationException;
 import javax.ws.rs.core.CacheControl;
 import javax.ws.rs.core.HttpHeaders;
 import javax.ws.rs.core.MultivaluedMap;
@@ -111,8 +112,7 @@ public class CacheResourceMethodDispatchAdapter implements ResourceMethodDispatc
                 }
 
                 if (requestCacheConfig.getCacheExtension().containsKey("only-if-cached")) {
-                    context.getResponse().setResponse(Response.status(HttpUtils.GATEWAY_TIMEOUT).build());
-                    return;
+                    throw new WebApplicationException(Response.status(HttpUtils.GATEWAY_TIMEOUT).build());
                 }
 
                 ContainerResponse response = (ContainerResponse) context.getResponse();
