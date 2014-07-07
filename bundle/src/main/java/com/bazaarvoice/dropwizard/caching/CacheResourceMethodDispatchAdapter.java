@@ -19,6 +19,7 @@ import javax.ws.rs.core.HttpHeaders;
 import javax.ws.rs.core.MultivaluedMap;
 import javax.ws.rs.core.Response;
 import javax.ws.rs.ext.Provider;
+import javax.xml.ws.http.HTTPException;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.OutputStream;
@@ -107,6 +108,11 @@ public class CacheResourceMethodDispatchAdapter implements ResourceMethodDispatc
                         context.getResponse().setResponse(responseBuilder.build());
                         return;
                     }
+                }
+
+                if (requestCacheConfig.getCacheExtension().containsKey("only-if-cached")) {
+                    context.getResponse().setResponse(Response.status(HttpUtils.GATEWAY_TIMEOUT).build());
+                    return;
                 }
 
                 ContainerResponse response = (ContainerResponse) context.getResponse();
