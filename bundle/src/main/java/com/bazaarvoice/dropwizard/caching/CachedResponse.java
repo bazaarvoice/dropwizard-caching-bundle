@@ -37,12 +37,15 @@ public class CachedResponse {
     private final MultivaluedMap<String, String> _responseHeaders;
     private final byte[] _responseContent;
 
-    public CachedResponse(int statusCode, Iterable<Map.Entry<String, List<Object>>> headers, byte[] content) {
-        checkNotNull(headers);
-
+    public CachedResponse(int statusCode, MultivaluedMap<String, String> headers, byte[] content) {
         _statusCode = statusCode;
-        _responseHeaders = copyHeaders(checkNotNull(headers));
+        _responseHeaders = checkNotNull(headers);
         _responseContent = checkNotNull(content);
+    }
+
+    public static CachedResponse build(int statusCode, MultivaluedMap<String, Object> headers, byte[] content) {
+        checkNotNull(headers);
+        return new CachedResponse(statusCode, copyHeaders(headers.entrySet()), content);
     }
 
     private static MultivaluedMap<String, String> copyHeaders(Iterable<Map.Entry<String, List<Object>>> headers) {

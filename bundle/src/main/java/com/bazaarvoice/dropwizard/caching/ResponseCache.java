@@ -34,7 +34,7 @@ public class ResponseCache {
 
     public void put(HttpRequestContext request, HttpResponseContext response, byte[] content) {
         String key = buildKey(request);
-        CachedResponse cachedResponse = new CachedResponse(response.getStatus(), response.getHttpHeaders().entrySet(), content);
+        CachedResponse cachedResponse = CachedResponse.build(response.getStatus(), response.getHttpHeaders(), content);
 
         _localCache.put(key, Optional.of(cachedResponse));
 
