@@ -25,6 +25,8 @@ public class MemcachedResponseStore extends ResponseStore {
 
     @Override
     public Optional<CachedResponse> get(String key) {
+        checkNotNull(key);
+
         try {
             return Optional.fromNullable(_client.get(key, CachedResponseTranscoder.INSTANCE));
         } catch (OperationTimeoutException ex) {
@@ -41,6 +43,9 @@ public class MemcachedResponseStore extends ResponseStore {
 
     @Override
     public void put(String key, CachedResponse response) {
+        checkNotNull(key);
+        checkNotNull(response);
+
         DateTime expires = response.getExpires().orNull();
 
         if (expires != null) {
@@ -51,6 +56,19 @@ public class MemcachedResponseStore extends ResponseStore {
             } catch (Throwable ex) {
                 LOG.warn("Memcached store operation failed: key={}", key, ex);
             }
+        }
+    }
+
+    @Override
+    public void invalidate(String key) {
+        checkNotNull(key);
+
+        try {
+            _client.delete(key);
+        } catch (IllegalStateException ex) {
+            LOG.warn("Memcached delete operation failed. Internal error: key={}", key, ex);
+        } catch (Throwable ex) {
+            LOG.warn("Memcached delete operation failed: key={}", key, ex);
         }
     }
 }

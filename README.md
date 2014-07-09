@@ -8,5 +8,4 @@ Response caching bundle for Dropwizard resources.
 * Expect
 * If-Match, If-None-Match
 * If-Modified-Since, If-Unmodified-Since
-* Pragma: no-cache
-* Cache-Control: min-fresh, max-stale (request header)
+* Cache-Control: no-cache fields, private fields

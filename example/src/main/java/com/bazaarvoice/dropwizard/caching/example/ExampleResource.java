@@ -1,33 +1,25 @@
 package com.bazaarvoice.dropwizard.caching.example;
 
+import com.sun.jersey.api.core.HttpContext;
 import io.dropwizard.jersey.caching.CacheControl;
 
 import javax.ws.rs.GET;
 import javax.ws.rs.Path;
 import javax.ws.rs.Produces;
+import javax.ws.rs.core.Context;
 import javax.ws.rs.core.MediaType;
-import javax.ws.rs.core.Response;
-import java.util.Date;
 
 @Produces(MediaType.APPLICATION_JSON)
-@Path("/")
+@Path("/api")
 public class ExampleResource {
     private int _count = 1;
 
     @GET
     @Path("/test")
     @CacheControl(maxAge = 60)
-    public ExampleResult getTestData() {
+    public ExampleResult getTestData(@Context HttpContext requestContext) {
 //        throw new RuntimeException("uh oh");
         return new ExampleResult(_count++);
-    }
-
-    @GET
-    @Path("/other")
-    public Response otherTestData() {
-        return Response.ok()
-                .header("Date", new Date(2014, 4, 1))
-                .build();
     }
 
     public static class ExampleResult {

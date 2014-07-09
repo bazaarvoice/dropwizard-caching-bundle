@@ -9,4 +9,6 @@ public abstract class ResponseStore {
     public abstract Optional<CachedResponse> get(String key);
 
     public abstract void put(String key, CachedResponse response);
+
+    public abstract void invalidate(String key);
 }

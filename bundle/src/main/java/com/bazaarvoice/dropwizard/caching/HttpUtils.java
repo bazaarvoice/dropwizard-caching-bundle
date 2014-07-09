@@ -46,7 +46,7 @@ class HttpUtils {
 
         @Override
         public Response.Status.Family getFamily() {
-            return null;
+            return _family;
         }
 
         @Override

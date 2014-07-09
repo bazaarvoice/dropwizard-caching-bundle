@@ -5,21 +5,28 @@ import com.sun.jersey.core.util.StringKeyIgnoreCaseMultivaluedMap;
 import com.sun.jersey.core.util.UnmodifiableMultivaluedMap;
 import com.sun.jersey.spi.container.ContainerResponse;
 import org.joda.time.DateTime;
-import org.joda.time.Duration;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import javax.ws.rs.core.CacheControl;
 import javax.ws.rs.core.HttpHeaders;
 import javax.ws.rs.core.MultivaluedMap;
+import javax.ws.rs.core.Response;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
 import static com.google.common.base.Preconditions.checkNotNull;
+import static com.google.common.net.HttpHeaders.CACHE_CONTROL;
+import static com.google.common.net.HttpHeaders.DATE;
+import static com.google.common.net.HttpHeaders.EXPIRES;
 
 /**
  * Response loaded from the cache.
  */
 public class CachedResponse {
+    private static final Logger LOG = LoggerFactory.getLogger(CachedResponse.class);
+
     /**
      * Names of HTTP headers that are automatically excluded from the cached response headers. The set implementation is
      * case-insensitive.
@@ -30,7 +37,6 @@ public class CachedResponse {
 
     private transient DateTime _date;
     private transient Optional<CacheControl> _cacheControl;
-    private transient Optional<Duration> _maxAge;
     private transient Optional<DateTime> _expires;
 
     private final int _statusCode;
@@ -46,6 +52,21 @@ public class CachedResponse {
     public static CachedResponse build(int statusCode, MultivaluedMap<String, Object> headers, byte[] content) {
         checkNotNull(headers);
         return new CachedResponse(statusCode, copyHeaders(headers.entrySet()), content);
+    }
+
+    public Response.ResponseBuilder response(DateTime now) {
+        Response.ResponseBuilder responseBuilder = Response
+                .status(getStatusCode())
+                .entity(getResponseContent())
+                .header("Age", HttpHeaderUtils.toAge(getDate(), now));
+
+        for (Map.Entry<String, List<String>> header : getResponseHeaders().entrySet()) {
+            for (String headerValue : header.getValue()) {
+                responseBuilder.header(header.getKey(), headerValue);
+            }
+        }
+
+        return responseBuilder;
     }
 
     private static MultivaluedMap<String, String> copyHeaders(Iterable<Map.Entry<String, List<Object>>> headers) {
@@ -71,9 +92,19 @@ public class CachedResponse {
      */
     public DateTime getDate() {
         if (_date == null) {
-            _date = HttpHeaderUtils
-                    .getDateHeader(_responseHeaders, HttpHeaders.DATE)
-                    .or(DateTime.now());
+            String dateString = _responseHeaders.getFirst(DATE);
+
+            if (dateString != null) {
+                try {
+                    _date = HttpHeaderUtils.parseDate(dateString);
+                } catch (Exception ex) {
+                    LOG.debug("Failed to parse date header: value={}", dateString, ex);
+                }
+            }
+
+            if (_date == null) {
+                _date = DateTime.now();
+            }
         }
 
         return _date;
@@ -86,58 +117,48 @@ public class CachedResponse {
      */
     public Optional<CacheControl> getCacheControl() {
         if (_cacheControl == null) {
-            _cacheControl = HttpHeaderUtils.getCacheControl(_responseHeaders);
+            List<String> headerValues = _responseHeaders.get(CACHE_CONTROL);
+
+            _cacheControl = Optional.absent();
+
+            if (headerValues != null) {
+                try {
+                    _cacheControl = Optional.of(CacheControl.valueOf(HttpHeaderUtils.join(headerValues)));
+                } catch (Exception ex) {
+                    LOG.debug("Failed to parse cache-control header: value='{}'", headerValues, ex);
+                }
+            }
         }
 
         return _cacheControl;
     }
 
-    public Optional<Duration> getMaxAge() {
-        if (_maxAge == null) {
-            Optional<CacheControl> cacheControl = getCacheControl();
+    public Optional<DateTime> getExpires() {
+        if (_expires == null) {
+            CacheControl cacheControl = getCacheControl().orNull();
 
-            if (cacheControl.isPresent()) {
-                int maxAgeSecs = CacheControlUtils.getSharedCacheMaxAge(cacheControl.get());
+            _expires = Optional.absent();
 
-                _maxAge = maxAgeSecs < 0
-                        ? Optional.<Duration>absent()
-                        : Optional.of(Duration.standardSeconds(maxAgeSecs));
-            } else {
-                _maxAge = Optional.absent();
+            if (cacheControl != null) {
+                int maxAge = CacheControlUtils.getSharedCacheMaxAge(cacheControl);
+
+                if (maxAge >= 0) {
+                    _expires = Optional.of(getDate().plusSeconds(maxAge));
+                } else {
+                    String expiresString = _responseHeaders.getFirst(EXPIRES);
+
+                    if (expiresString != null) {
+                        try {
+                            _expires = Optional.of(HttpHeaderUtils.parseDate(expiresString));
+                        } catch (Exception ex) {
+                            LOG.debug("Failed to parse expires header: value={}", expiresString, ex);
+                        }
+                    }
+                }
             }
         }
 
-        return _maxAge;
-    }
-
-    public Optional<DateTime> getExpires() {
-        if (_expires == null) {
-            Optional<Duration> maxAge = getMaxAge();
-
-            _expires = maxAge.isPresent()
-                    ? Optional.of(getDate().plus(maxAge.get()))
-                    : HttpHeaderUtils.getDateHeader(_responseHeaders, HttpHeaders.EXPIRES);
-        }
-
         return _expires;
-    }
-
-    public boolean isCacheable() {
-        Optional<CacheControl> cacheControl = getCacheControl();
-        return cacheControl.isPresent() && !CacheControlUtils.isResponseCacheable(cacheControl.get());
-    }
-
-    /**
-     * Test if this response has expired.
-     * <p/>
-     * Tests if {@link #getExpires()} returns a value and, if so, the expiration time is before the provided instant.
-     *
-     * @param at expiration instant to test
-     * @return true if the response has expired and should not be used
-     */
-    public boolean isExpired(DateTime at) {
-        Optional<DateTime> expires = getExpires();
-        return expires.isPresent() && expires.get().isBefore(at);
     }
 
     public byte[] getResponseContent() {

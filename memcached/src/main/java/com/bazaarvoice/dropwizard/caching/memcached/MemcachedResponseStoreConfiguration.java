@@ -1,12 +1,9 @@
 package com.bazaarvoice.dropwizard.caching.memcached;
 
-import com.bazaarvoice.dropwizard.caching.CachedResponse;
 import com.bazaarvoice.dropwizard.caching.ResponseStore;
 import com.bazaarvoice.dropwizard.caching.ResponseStoreConfiguration;
-import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.annotation.JsonTypeName;
-import com.google.common.base.Optional;
 import com.google.common.base.Throwables;
 import net.spy.memcached.MemcachedClient;
 
@@ -49,10 +46,10 @@ public class MemcachedResponseStoreConfiguration extends ResponseStoreConfigurat
 
     @Override
     public ResponseStore createStore() {
-        checkState(_servers != null && _servers.size() > 0, "at least one server address is required");
+        checkState(getServers().size() > 0, "at least one server address is required");
 
         try {
-            return new MemcachedResponseStore(new MemcachedClient(_servers));
+            return new MemcachedResponseStore(new MemcachedClient(getServers()));
         } catch (IOException ex) {
             throw Throwables.propagate(ex);
         }

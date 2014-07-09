@@ -4,13 +4,10 @@ import com.bazaarvoice.dropwizard.caching.CachedResponse;
 import com.google.common.base.Charsets;
 import com.google.common.base.Splitter;
 import com.google.common.base.Throwables;
-import com.google.common.collect.Iterables;
 import com.google.common.primitives.Bytes;
 import com.sun.jersey.core.util.StringKeyIgnoreCaseMultivaluedMap;
 import net.spy.memcached.CachedData;
 import net.spy.memcached.transcoders.Transcoder;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import javax.ws.rs.core.MultivaluedMap;
 import java.io.BufferedReader;
@@ -19,11 +16,9 @@ import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.io.OutputStreamWriter;
-import java.nio.Buffer;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
-import java.util.regex.Pattern;
 
 import static com.google.common.base.Strings.isNullOrEmpty;
 import static java.lang.String.format;
@@ -32,7 +27,6 @@ import static java.lang.String.format;
  * Transcoder that converts {@link CachedResponse} instances to/from bytes for storing in memcached.
  */
 public class CachedResponseTranscoder implements Transcoder<CachedResponse> {
-    private static final Logger LOG = LoggerFactory.getLogger(CachedResponseTranscoder.class);
     private static final byte[] HEADER_SEPARATOR = new byte[]{'\r', '\n', '\r', '\n'};
     private static final Splitter STATUS_SPLITTER = Splitter.on(' ').trimResults();
     private static final Splitter HEADER_SPLITTER = Splitter.on(':').trimResults().limit(2);
