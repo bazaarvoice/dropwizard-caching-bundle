@@ -199,7 +199,6 @@ public class ResponseCache {
             }
         }
 
-        // This check must occur AFTER the min-fresh/max-stale check
-        return responseExpires.isAfter(now);
+        return cacheControl.getMaxStale() < 0 && responseExpires.isAfter(now);
     }
 }
