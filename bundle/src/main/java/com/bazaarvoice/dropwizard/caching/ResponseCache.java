@@ -31,11 +31,11 @@ public class ResponseCache {
             String cacheKey = buildKey(request.getHttpContext());
             CachedResponse cachedResponse = loadResponse(cacheKey);
 
-            if (cachedResponse != null && cachedResponse.getExpires().isPresent()) {
+            if (cachedResponse != null && cachedResponse.hasExpiration()) {
                 DateTime now = DateTime.now();
 
                 // If cached response is acceptable for request cache control options
-                if (isCacheAcceptable(request, now, cachedResponse.getDate(), cachedResponse.getExpires().get())) {
+                if (isCacheAcceptable(request, now, cachedResponse)) {
 
                     // If request specifies that response MUST NOT be cached
                     if (!isResponseCacheable(request)) {
@@ -156,16 +156,17 @@ public class ResponseCache {
     /**
      * Test if this request allows a specific cached response to be returned.
      *
-     * @param request         the request context
-     * @param now             instant that represents the current time
-     * @param responseDate    instant the cached response was generated
-     * @param responseExpires instant the cached response expires
+     * @param request  the request context
+     * @param now      instant that represents the current time
+     * @param response response to check
      * @return true if the cached response can be returned, false if the request must be re-validated with the origin
      * server
      */
-    private static boolean isCacheAcceptable(CacheRequestContext request, DateTime now, DateTime responseDate, DateTime responseExpires) {
+    private static boolean isCacheAcceptable(CacheRequestContext request, DateTime now, CachedResponse response) {
         // NOTE: Do not check that the expiration time is before NOW here. That is verified later against the max-stale
         // cache-control option.
+        DateTime responseDate = response.getDate();
+        DateTime responseExpires = response.getExpires().get();
 
         if (responseExpires.isBefore(responseDate)) {
             return false;
@@ -184,9 +185,17 @@ public class ResponseCache {
         if (cacheControl.getMinFresh() > 0 || cacheControl.getMaxStale() > 0) {
             int freshness = Seconds.secondsBetween(now, responseExpires).getSeconds();
 
-            if ((cacheControl.getMinFresh() > 0 && freshness < cacheControl.getMinFresh()) ||
-                    (cacheControl.getMaxStale() > 0 && (freshness < -cacheControl.getMaxStale()))) {
+            if (cacheControl.getMinFresh() > 0 && freshness < cacheControl.getMinFresh()) {
                 return false;
+            }
+
+            if (cacheControl.getMaxStale() > 0) {
+                CacheControl responseCacheControl = response.getCacheControl().orNull();
+                boolean responseMustRevalidate = responseCacheControl != null && (responseCacheControl.isProxyRevalidate() || responseCacheControl.isMustRevalidate());
+
+                if (!responseMustRevalidate && freshness < -cacheControl.getMaxStale()) {
+                    return false;
+                }
             }
         }
 

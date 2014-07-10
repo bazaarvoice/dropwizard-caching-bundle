@@ -84,6 +84,13 @@ public class CachedResponse {
     }
 
     /**
+     * True if this response has a configured expiration time.
+     */
+    public boolean hasExpiration() {
+        return getExpires().isPresent();
+    }
+
+    /**
      * Get the date the response was generated.
      * <p/>
      * Retrieves the {@link HttpHeaders#DATE} header or current time if no date header is found.
