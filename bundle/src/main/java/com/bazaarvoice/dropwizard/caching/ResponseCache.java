@@ -172,33 +172,33 @@ public class ResponseCache {
             return false;
         }
 
-        RequestCacheControl cacheControl = request.getCacheControl();
+        RequestCacheControl requestCacheControl = request.getCacheControl();
 
-        if (cacheControl.getMaxAge() > 0) {
+        if (requestCacheControl.getMaxAge() > 0) {
             int age = Seconds.secondsBetween(responseDate, now).getSeconds();
 
-            if (age > cacheControl.getMaxAge()) {
+            if (age > requestCacheControl.getMaxAge()) {
                 return false;
             }
         }
 
-        if (cacheControl.getMinFresh() > 0 || cacheControl.getMaxStale() > 0) {
+        if (requestCacheControl.getMinFresh() > 0 || requestCacheControl.getMaxStale() > 0) {
             int freshness = Seconds.secondsBetween(now, responseExpires).getSeconds();
 
-            if (cacheControl.getMinFresh() > 0 && freshness < cacheControl.getMinFresh()) {
+            if (requestCacheControl.getMinFresh() > 0 && freshness < requestCacheControl.getMinFresh()) {
                 return false;
             }
 
-            if (cacheControl.getMaxStale() > 0) {
+            if (requestCacheControl.getMaxStale() > 0) {
                 CacheControl responseCacheControl = response.getCacheControl().orNull();
                 boolean responseMustRevalidate = responseCacheControl != null && (responseCacheControl.isProxyRevalidate() || responseCacheControl.isMustRevalidate());
 
-                if (!responseMustRevalidate && freshness < -cacheControl.getMaxStale()) {
+                if (!responseMustRevalidate && freshness < -requestCacheControl.getMaxStale()) {
                     return false;
                 }
             }
         }
 
-        return cacheControl.getMaxStale() < 0 && responseExpires.isAfter(now);
+        return requestCacheControl.getMaxStale() < 0 && responseExpires.isAfter(now);
     }
 }
