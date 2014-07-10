@@ -1,0 +1,9 @@
+cache:
+  local:
+    maximumSize: 5
+    expire: 12m
+
+  store:
+    type: memcached
+    servers:
+      - localhost:11211

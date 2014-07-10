@@ -1,6 +1,6 @@
 package com.bazaarvoice.dropwizard.caching;
 
-import io.dropwizard.Bundle;
+import io.dropwizard.ConfiguredBundle;
 import io.dropwizard.setup.Bootstrap;
 import io.dropwizard.setup.Environment;
 
@@ -16,12 +16,10 @@ import javax.ws.rs.core.HttpHeaders;
 import java.io.IOException;
 import java.util.Set;
 
-import static com.google.common.base.Preconditions.checkNotNull;
-
 /**
  * Bundle that sets up request caching for an application's resources.
  */
-public class CachingBundle implements Bundle {
+public class CachingBundle implements ConfiguredBundle<CachingBundleConfiguration> {
     private static final Set<String> SINGLETON_HEADERS = HttpHeaderUtils.headerNames(
             // Jetty sets the Date header automatically to the current time after the request has been
             // processed. Any other attempts to set the date header result in duplicate date headers. The
@@ -38,21 +36,13 @@ public class CachingBundle implements Bundle {
             HttpHeaders.CACHE_CONTROL
     );
 
-    private final ResponseCache _cache;
-
-    public CachingBundle(CachingConfiguration configuration) {
-        checkNotNull(configuration);
-
-        _cache = configuration.buildCache();
-    }
-
     public void initialize(Bootstrap<?> bootstrap) {
         // Nothing to do
     }
 
     @Override
-    public void run(Environment environment) {
-        environment.jersey().register(new CacheResourceMethodDispatchAdapter(_cache));
+    public void run(CachingBundleConfiguration configuration, Environment environment) {
+        environment.jersey().register(new CacheResourceMethodDispatchAdapter(configuration.getCache().buildCache()));
 
         environment.servlets().addFilter("cache", new Filter() {
             @Override
