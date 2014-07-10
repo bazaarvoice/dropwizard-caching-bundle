@@ -1,7 +1,7 @@
 package com.bazaarvoice.dropwizard.caching.memcached;
 
 import com.bazaarvoice.dropwizard.caching.ResponseStore;
-import com.bazaarvoice.dropwizard.caching.ResponseStoreConfiguration;
+import com.bazaarvoice.dropwizard.caching.ResponseStoreFactory;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.annotation.JsonTypeName;
 import com.google.common.base.Function;
@@ -22,21 +22,21 @@ import static com.google.common.base.Preconditions.checkNotNull;
  * Configuration options for storing HTTP responses in memcached.
  */
 @JsonTypeName("memcached")
-public class MemcachedResponseStoreConfiguration implements ResponseStoreConfiguration {
+public class MemcachedResponseStoreFactory implements ResponseStoreFactory {
     private List<InetSocketAddress> _servers = ImmutableList.of();
 
     public List<InetSocketAddress> getServers() {
         return _servers;
     }
 
-    public MemcachedResponseStoreConfiguration servers(List<InetSocketAddress> servers) {
+    public MemcachedResponseStoreFactory servers(List<InetSocketAddress> servers) {
         checkNotNull(servers);
         checkArgument(servers.size() > 0, "at least one server address is required");
         _servers = ImmutableList.copyOf(servers);
         return this;
     }
 
-    public MemcachedResponseStoreConfiguration servers(InetSocketAddress... servers) {
+    public MemcachedResponseStoreFactory servers(InetSocketAddress... servers) {
         checkNotNull(servers);
         checkArgument(servers.length > 0, "at least one server address is required");
         _servers = ImmutableList.copyOf(servers);

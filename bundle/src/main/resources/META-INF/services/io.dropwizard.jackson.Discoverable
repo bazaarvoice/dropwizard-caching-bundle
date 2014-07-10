@@ -1,1 +1,1 @@
-com.bazaarvoice.dropwizard.caching.ResponseStoreConfiguration
+com.bazaarvoice.dropwizard.caching.ResponseStoreFactory

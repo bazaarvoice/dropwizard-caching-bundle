@@ -11,35 +11,28 @@ import static com.google.common.base.Preconditions.checkNotNull;
  */
 public class CachingConfiguration {
     private LocalCacheConfiguration _local = new LocalCacheConfiguration();
-    private ResponseStoreConfiguration _store = new ResponseStoreConfiguration() {
-        @Override
-        public ResponseStore createStore() {
-            return ResponseStore.NULL_STORE;
-        }
-    };
+    private ResponseStoreFactory _storeFactory = ResponseStoreFactory.NULL_STORE_FACTORY;
 
     public LocalCacheConfiguration getLocal() {
         return _local;
     }
 
     @JsonProperty
-    public CachingConfiguration local(LocalCacheConfiguration local) {
+    public void setLocal(LocalCacheConfiguration local) {
         _local = checkNotNull(local);
-        return this;
     }
 
-    public ResponseStoreConfiguration getStore() {
-        return _store;
+    public ResponseStoreFactory getStoreFactory() {
+        return _storeFactory;
     }
 
-    @JsonProperty
-    public CachingConfiguration store(ResponseStoreConfiguration store) {
-        _store = checkNotNull(store);
-        return this;
+    @JsonProperty("store")
+    public void setStoreFactory(ResponseStoreFactory storeFactory) {
+        _storeFactory = checkNotNull(storeFactory);
     }
 
     public ResponseCache buildCache() {
         Cache<String, Optional<CachedResponse>> localCache = _local.newCacheBuilder().build();
-        return new ResponseCache(localCache, Optional.fromNullable(_store.createStore()));
+        return new ResponseCache(localCache, Optional.fromNullable(_storeFactory.createStore()));
     }
 }
