@@ -10,6 +10,7 @@ import org.slf4j.LoggerFactory;
 
 import javax.ws.rs.core.CacheControl;
 import javax.ws.rs.core.Response;
+import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutionException;
 
 import static com.google.common.base.Preconditions.checkNotNull;
@@ -29,24 +30,24 @@ public class ResponseCache {
         // If request allows a cached response to be returned
         if (isServableFromCache(request)) {
             String cacheKey = buildKey(request.getHttpContext());
-            CachedResponse cachedResponse = loadResponse(cacheKey);
+            StoreLoader loader = new StoreLoader(_store, cacheKey);
+            CachedResponse cachedResponse = loadResponse(cacheKey, loader);
 
             if (cachedResponse != null && cachedResponse.hasExpiration()) {
                 DateTime now = DateTime.now();
 
                 // If cached response is acceptable for request cache control options
                 if (isCacheAcceptable(request, now, cachedResponse)) {
+                    return buildResponse(request, cacheKey, cachedResponse, now);
+                } else if (!loader.invoked && cachedResponse.isExpired(now)) {
+                    // Check if the backing store has a fresher copy of the response
 
-                    // If request specifies that response MUST NOT be cached
-                    if (!isResponseCacheable(request)) {
-                        _localCache.invalidate(cacheKey);
+                    _localCache.invalidate(cacheKey);
+                    cachedResponse = loadResponse(cacheKey, loader);
 
-                        if (_store != null) {
-                            _store.invalidate(cacheKey);
-                        }
+                    if (cachedResponse != null && cachedResponse.hasExpiration() && isCacheAcceptable(request, now, cachedResponse)) {
+                        return buildResponse(request, cacheKey, cachedResponse, now);
                     }
-
-                    return Optional.of(cachedResponse.response(now).build());
                 }
             }
         }
@@ -56,6 +57,19 @@ public class ResponseCache {
         }
 
         return Optional.absent();
+    }
+
+    private Optional<Response> buildResponse(CacheRequestContext request, String cacheKey, CachedResponse response, DateTime now) {
+        // If request specifies that response MUST NOT be cached
+        if (!isResponseCacheable(request)) {
+            if (_store != null) {
+                _store.invalidate(cacheKey);
+            }
+
+            _localCache.invalidate(cacheKey);
+        }
+
+        return Optional.of(response.response(now).build());
     }
 
     public void put(CacheRequestContext request, CacheResponseContext response, byte[] content) {
@@ -86,9 +100,9 @@ public class ResponseCache {
     /**
      * Load the response from the local guava cache (which loads from the response store if necessary).
      */
-    private CachedResponse loadResponse(String key) {
+    private CachedResponse loadResponse(String key, StoreLoader loader) {
         try {
-            Optional<CachedResponse> response = _localCache.get(key);
+            Optional<CachedResponse> response = _localCache.get(key, loader);
 
             return response == null
                     ? null
@@ -200,5 +214,27 @@ public class ResponseCache {
         }
 
         return requestCacheControl.getMaxStale() < 0 && !responseExpires.isBefore(now);
+    }
+
+    private static class StoreLoader implements Callable<Optional<CachedResponse>> {
+        boolean invoked;
+        final ResponseStore store;
+        final String key;
+
+        public StoreLoader(ResponseStore store, String key) {
+            this.store = store;
+            this.invoked = store == null;
+            this.key = key;
+        }
+
+        @Override
+        public Optional<CachedResponse> call() throws Exception {
+            if (invoked) {
+                return Optional.absent();
+            }
+
+            this.invoked = true;
+            return this.store.get(this.key);
+        }
     }
 }
