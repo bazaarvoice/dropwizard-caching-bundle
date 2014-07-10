@@ -199,6 +199,6 @@ public class ResponseCache {
             }
         }
 
-        return requestCacheControl.getMaxStale() < 0 && responseExpires.isAfter(now);
+        return requestCacheControl.getMaxStale() < 0 && !responseExpires.isBefore(now);
     }
 }
