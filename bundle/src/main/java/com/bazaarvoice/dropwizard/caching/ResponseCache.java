@@ -1,7 +1,7 @@
 package com.bazaarvoice.dropwizard.caching;
 
 import com.google.common.base.Optional;
-import com.google.common.cache.LoadingCache;
+import com.google.common.cache.Cache;
 import com.sun.jersey.api.core.HttpRequestContext;
 import org.joda.time.DateTime;
 import org.joda.time.Seconds;
@@ -18,10 +18,10 @@ import static com.google.common.base.Preconditions.checkNotNull;
 public class ResponseCache {
     private static final Logger LOG = LoggerFactory.getLogger(ResponseCache.class);
 
-    private final LoadingCache<String, Optional<CachedResponse>> _localCache;
+    private final Cache<String, Optional<CachedResponse>> _localCache;
     private final ResponseStore _store;
 
-    public ResponseCache(LoadingCache<String, Optional<CachedResponse>> localCache, Optional<ResponseStore> store) {
+    public ResponseCache(Cache<String, Optional<CachedResponse>> localCache, Optional<ResponseStore> store) {
         _localCache = checkNotNull(localCache);
         _store = checkNotNull(store).orNull();
     }
