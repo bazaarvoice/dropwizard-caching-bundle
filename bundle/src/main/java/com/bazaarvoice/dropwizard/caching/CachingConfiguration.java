@@ -10,19 +10,8 @@ import static com.google.common.base.Preconditions.checkNotNull;
  * Configuration options for {@link CachingBundle}.
  */
 public class CachingConfiguration {
-    private boolean _enabled = true;
     private LocalCacheConfiguration _local = new LocalCacheConfiguration();
     private Optional<ResponseStoreConfiguration> _store = Optional.absent();
-
-    public boolean isEnabled() {
-        return _enabled;
-    }
-
-    @JsonProperty
-    public CachingConfiguration enabled(boolean enabled) {
-        _enabled = enabled;
-        return this;
-    }
 
     public LocalCacheConfiguration getLocal() {
         return _local;

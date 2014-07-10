@@ -38,13 +38,11 @@ public class CachingBundle implements Bundle {
             HttpHeaders.CACHE_CONTROL
     );
 
-    private final boolean _enabled;
     private final ResponseCache _cache;
 
     public CachingBundle(CachingConfiguration configuration) {
         checkNotNull(configuration);
 
-        _enabled = configuration.isEnabled();
         _cache = configuration.buildCache();
     }
 
@@ -54,36 +52,34 @@ public class CachingBundle implements Bundle {
 
     @Override
     public void run(Environment environment) {
-        if (_enabled) {
-            environment.jersey().register(new CacheResourceMethodDispatchAdapter(_cache));
+        environment.jersey().register(new CacheResourceMethodDispatchAdapter(_cache));
 
-            environment.servlets().addFilter("cache", new Filter() {
-                @Override
-                public void init(FilterConfig filterConfig) throws ServletException {
-                    // Nothing to do
-                }
+        environment.servlets().addFilter("cache", new Filter() {
+            @Override
+            public void init(FilterConfig filterConfig) throws ServletException {
+                // Nothing to do
+            }
 
-                @Override
-                public void doFilter(ServletRequest request, final ServletResponse response, FilterChain chain) throws IOException, ServletException {
-                    HttpServletResponse httpResponse = (HttpServletResponse) response;
+            @Override
+            public void doFilter(ServletRequest request, final ServletResponse response, FilterChain chain) throws IOException, ServletException {
+                HttpServletResponse httpResponse = (HttpServletResponse) response;
 
-                    chain.doFilter(request, new HttpServletResponseWrapper(httpResponse) {
-                        @Override
-                        public void addHeader(String name, String value) {
-                            if (SINGLETON_HEADERS.contains(name)) {
-                                super.setHeader(name, value);
-                            } else {
-                                super.addHeader(name, value);
-                            }
+                chain.doFilter(request, new HttpServletResponseWrapper(httpResponse) {
+                    @Override
+                    public void addHeader(String name, String value) {
+                        if (SINGLETON_HEADERS.contains(name)) {
+                            super.setHeader(name, value);
+                        } else {
+                            super.addHeader(name, value);
                         }
-                    });
-                }
+                    }
+                });
+            }
 
-                @Override
-                public void destroy() {
-                    // Nothing to do
-                }
-            }).addMappingForUrlPatterns(null, false, "*");
-        }
+            @Override
+            public void destroy() {
+                // Nothing to do
+            }
+        }).addMappingForUrlPatterns(null, false, "*");
     }
 }
