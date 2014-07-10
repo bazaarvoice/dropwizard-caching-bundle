@@ -23,7 +23,7 @@ public class ResponseCache {
 
     public ResponseCache(Cache<String, Optional<CachedResponse>> localCache, Optional<ResponseStore> store) {
         _localCache = checkNotNull(localCache);
-        _store = checkNotNull(store).orNull();
+        _store = failTrap(checkNotNull(store));
     }
 
     public Optional<Response> get(CacheRequestContext request) {
@@ -62,10 +62,7 @@ public class ResponseCache {
     private Optional<Response> buildResponse(CacheRequestContext request, String cacheKey, CachedResponse response, DateTime now) {
         // If request specifies that response MUST NOT be cached
         if (!isResponseCacheable(request)) {
-            if (_store != null) {
-                _store.invalidate(cacheKey);
-            }
-
+            _store.invalidate(cacheKey);
             _localCache.invalidate(cacheKey);
         }
 
@@ -90,10 +87,7 @@ public class ResponseCache {
             String cacheKey = buildKey(request.getHttpContext());
 
             _localCache.put(cacheKey, Optional.of(cachedResponse));
-
-            if (_store != null) {
-                _store.put(cacheKey, cachedResponse);
-            }
+            _store.put(cacheKey, cachedResponse);
         }
     }
 
@@ -108,7 +102,9 @@ public class ResponseCache {
                     ? null
                     : response.orNull();
         } catch (ExecutionException ex) {
-            LOG.debug("Failed to load response from cache: key={}", key, ex);
+            // Since the store is wrapped up so exceptions are swallowed, there should be no way for this exception to
+            // occur.
+            LOG.warn("Failed to load response from cache: key={}", key, ex);
             return null;
         }
     }
@@ -223,7 +219,6 @@ public class ResponseCache {
 
         public StoreLoader(ResponseStore store, String key) {
             this.store = store;
-            this.invoked = store == null;
             this.key = key;
         }
 
@@ -235,6 +230,56 @@ public class ResponseCache {
 
             this.invoked = true;
             return this.store.get(this.key);
+        }
+    }
+
+    /**
+     * Wrap the given store so that any exceptions for store methods are logged with the given logger and not
+     * propagated. If the store is absent, {@link ResponseStore#NULL_STORE} is returned.
+     */
+    private static ResponseStore failTrap(Optional<ResponseStore> store) {
+        ResponseStore storeObj = store.orNull();
+
+        if (storeObj == null || storeObj == ResponseStore.NULL_STORE) {
+            return ResponseStore.NULL_STORE;
+        } else {
+            return new FailTrap(storeObj);
+        }
+    }
+
+    private static class FailTrap extends ResponseStore {
+        private final ResponseStore _delegate;
+
+        public FailTrap(ResponseStore delegate) {
+            _delegate = checkNotNull(delegate);
+        }
+
+        @Override
+        public Optional<CachedResponse> get(String key) {
+            try {
+                return _delegate.get(key);
+            } catch (Exception ex) {
+                LOG.warn("Response cache store get operation failed: key={}", key, ex);
+                return Optional.absent();
+            }
+        }
+
+        @Override
+        public void put(String key, CachedResponse response) {
+            try {
+                _delegate.put(key, response);
+            } catch (Exception ex) {
+                LOG.warn("Response cache store put operation failed: key={}, response={}", key, response, ex);
+            }
+        }
+
+        @Override
+        public void invalidate(String key) {
+            try {
+                _delegate.invalidate(key);
+            } catch (Exception ex) {
+                LOG.warn("Response cache store invalidation operation failed: key={}", key, ex);
+            }
         }
     }
 }
