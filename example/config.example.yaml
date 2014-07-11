@@ -16,3 +16,4 @@ cacheControl:
     extensions:
       cool: # bare directive
       extended-value: "ack!"
+  - maxAge: 5s

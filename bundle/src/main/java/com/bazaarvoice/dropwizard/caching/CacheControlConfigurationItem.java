@@ -25,8 +25,6 @@ import static com.google.common.base.Preconditions.checkState;
  * Cache control options to apply to an endpoint.
  */
 public class CacheControlConfigurationItem {
-    private static final Pattern MATCH_ALL = Pattern.compile(".*");
-
     private Optional<String> _group = Optional.absent();
     private Optional<Pattern> _groupRegex = Optional.absent();
 
@@ -189,30 +187,46 @@ public class CacheControlConfigurationItem {
         return cacheControl;
     }
 
-    public Predicate<CharSequence> buildGroupMatcher() {
-        Pattern groupRegex = MATCH_ALL;
+    public Predicate<String> buildGroupMatcher() {
+        Predicate<String> matcher;
 
         if (_groupRegex.isPresent()) {
-            groupRegex = _groupRegex.get();
-        } else if (_group.isPresent()) {
-            groupRegex = Pattern.compile("" +
-                            "^" +
-                            Joiner.on(".*").join(
-                                    FluentIterable
-                                            .from(Splitter.on('*').split(_group.get()))
-                                            .transform(new Function<String, Object>() {
-                                                public Object apply(String input) {
-                                                    return input.length() == 0
-                                                            ? input
-                                                            : Pattern.quote(input);
-                                                }
-                                            })
-                            )
-                            + "$"
-            );
-
+            matcher = regexMatcher(_groupRegex.get());
+        } else {
+            matcher = groupNameMatcher(_group.or("*"));
         }
 
-        return Predicates.contains(groupRegex);
+        return matcher;
+    }
+
+    private static Predicate<String> groupNameMatcher(String name) {
+        if (name.equals("*")) {
+            return Predicates.alwaysTrue();
+        }
+
+        return regexMatcher(Pattern.compile("" +
+                        "^" +
+                        Joiner.on(".*").join(
+                                FluentIterable
+                                        .from(Splitter.on('*').split(name))
+                                        .transform(new Function<String, Object>() {
+                                            public Object apply(String input) {
+                                                return input.length() == 0
+                                                        ? input
+                                                        : Pattern.quote(input);
+                                            }
+                                        })
+                        )
+                        + "$",
+                Pattern.CASE_INSENSITIVE
+        ));
+    }
+
+    private static Predicate<String> regexMatcher(final Pattern pattern) {
+        return new Predicate<String>() {
+            public boolean apply(String input) {
+                return pattern.matcher(input).find();
+            }
+        };
     }
 }

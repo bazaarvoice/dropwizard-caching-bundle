@@ -24,6 +24,12 @@ public class ExampleResource {
         return new ExampleResult(_count++);
     }
 
+    @GET
+    @Path("/test2")
+    public ExampleResult doIt() {
+        return new ExampleResult(_count * 2);
+    }
+
     public static class ExampleResult {
         public int resultValue = 100;
 

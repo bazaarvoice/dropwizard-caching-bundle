@@ -62,7 +62,7 @@ public class CacheControlConfiguration {
                             public Optional<String> load(String key) throws Exception {
                                 for (CacheControlMap map : maps) {
                                     if (map.groupMatcher.apply(key)) {
-                                        return Optional.of(map.options + ", group=\"" + key + "\"");
+                                        return Optional.of(map.options);
                                     }
                                 }
 
@@ -73,7 +73,7 @@ public class CacheControlConfiguration {
     }
 
     private static class CacheControlMap {
-        public final Predicate<CharSequence> groupMatcher;
+        public final Predicate<String> groupMatcher;
         public final String options;
 
         public CacheControlMap(CacheControlConfigurationItem item) {
