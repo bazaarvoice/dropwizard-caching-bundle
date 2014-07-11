@@ -192,24 +192,24 @@ public class ResponseCache {
             }
         }
 
-        if (requestCacheControl.getMinFresh() > 0 || requestCacheControl.getMaxStale() > 0) {
+        if (requestCacheControl.getMinFresh() >= 0 || requestCacheControl.getMaxStale() >= 0) {
             int freshness = Seconds.secondsBetween(now, responseExpires).getSeconds();
 
-            if (requestCacheControl.getMinFresh() > 0 && freshness < requestCacheControl.getMinFresh()) {
+            if (requestCacheControl.getMinFresh() >= 0 && freshness < requestCacheControl.getMinFresh()) {
                 return false;
             }
 
-            if (requestCacheControl.getMaxStale() > 0) {
+            if (requestCacheControl.getMaxStale() >= 0) {
                 CacheControl responseCacheControl = response.getCacheControl().orNull();
                 boolean responseMustRevalidate = responseCacheControl != null && (responseCacheControl.isProxyRevalidate() || responseCacheControl.isMustRevalidate());
 
-                if (!responseMustRevalidate && freshness < -requestCacheControl.getMaxStale()) {
-                    return false;
+                if (!responseMustRevalidate) {
+                    return freshness >= -requestCacheControl.getMaxStale();
                 }
             }
         }
 
-        return requestCacheControl.getMaxStale() < 0 && !responseExpires.isBefore(now);
+        return !responseExpires.isBefore(now);
     }
 
     private static class StoreLoader implements Callable<Optional<CachedResponse>> {
