@@ -33,6 +33,6 @@ public class CachingConfiguration {
 
     public ResponseCache buildCache() {
         Cache<String, Optional<CachedResponse>> localCache = _local.newCacheBuilder().build();
-        return new ResponseCache(localCache, Optional.fromNullable(_storeFactory.createStore()));
+        return new ResponseCache(localCache, _storeFactory.createStore());
     }
 }

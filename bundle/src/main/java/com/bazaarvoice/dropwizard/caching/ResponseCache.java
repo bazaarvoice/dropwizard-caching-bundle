@@ -21,7 +21,7 @@ public class ResponseCache {
     private final Cache<String, Optional<CachedResponse>> _localCache;
     private final ResponseStore _store;
 
-    public ResponseCache(Cache<String, Optional<CachedResponse>> localCache, Optional<ResponseStore> store) {
+    public ResponseCache(Cache<String, Optional<CachedResponse>> localCache, ResponseStore store) {
         _localCache = checkNotNull(localCache);
         _store = failTrap(checkNotNull(store));
     }
@@ -237,13 +237,11 @@ public class ResponseCache {
      * Wrap the given store so that any exceptions for store methods are logged with the given logger and not
      * propagated. If the store is absent, {@link ResponseStore#NULL_STORE} is returned.
      */
-    private static ResponseStore failTrap(Optional<ResponseStore> store) {
-        ResponseStore storeObj = store.orNull();
-
-        if (storeObj == null || storeObj == ResponseStore.NULL_STORE) {
+    private static ResponseStore failTrap(ResponseStore store) {
+        if (store == ResponseStore.NULL_STORE) {
             return ResponseStore.NULL_STORE;
         } else {
-            return new FailTrap(storeObj);
+            return new FailTrap(store);
         }
     }
 
