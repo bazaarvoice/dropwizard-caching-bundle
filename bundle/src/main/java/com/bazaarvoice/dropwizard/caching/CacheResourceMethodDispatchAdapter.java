@@ -1,5 +1,6 @@
 package com.bazaarvoice.dropwizard.caching;
 
+import com.google.common.base.Function;
 import com.google.common.base.Optional;
 import com.google.common.base.Throwables;
 import com.sun.jersey.api.core.HttpContext;
@@ -18,6 +19,7 @@ import java.io.IOException;
 import java.io.OutputStream;
 
 import static com.google.common.base.Preconditions.checkNotNull;
+import static com.google.common.net.HttpHeaders.CACHE_CONTROL;
 
 /**
  * Wraps resource methods that are configured for request caching.
@@ -25,30 +27,45 @@ import static com.google.common.base.Preconditions.checkNotNull;
 @Provider
 public class CacheResourceMethodDispatchAdapter implements ResourceMethodDispatchAdapter {
     private final ResponseCache _cache;
+    private final Function<String, Optional<String>> _cacheControlMapper;
 
-    public CacheResourceMethodDispatchAdapter(ResponseCache cache) {
+    public CacheResourceMethodDispatchAdapter(ResponseCache cache, Function<String, Optional<String>> cacheControlMapper) {
         _cache = checkNotNull(cache);
+        _cacheControlMapper = checkNotNull(cacheControlMapper);
     }
 
     public ResourceMethodDispatchProvider adapt(ResourceMethodDispatchProvider provider) {
-        return new DispatchProvider(provider, _cache);
+        return new DispatchProvider(provider, _cache, _cacheControlMapper);
     }
 
     public static class DispatchProvider implements ResourceMethodDispatchProvider {
         private final ResourceMethodDispatchProvider _provider;
         private final ResponseCache _cache;
+        private final Function<String, Optional<String>> _cacheControlMapper;
 
-        public DispatchProvider(ResourceMethodDispatchProvider provider, ResponseCache cache) {
+        public DispatchProvider(ResourceMethodDispatchProvider provider, ResponseCache cache, Function<String, Optional<String>> cacheControlMapper) {
             _provider = checkNotNull(provider);
             _cache = checkNotNull(cache);
+            _cacheControlMapper = checkNotNull(cacheControlMapper);
         }
 
         @Override
         public RequestDispatcher create(AbstractResourceMethod abstractResourceMethod) {
             RequestDispatcher dispatcher = _provider.create(abstractResourceMethod);
 
-            if (abstractResourceMethod.isAnnotationPresent(io.dropwizard.jersey.caching.CacheControl.class)) {
-                dispatcher = new CachingDispatcher(dispatcher, _cache);
+            CacheGroup groupNameAnn = abstractResourceMethod.getAnnotation(CacheGroup.class);
+            String groupName = null;
+
+            if (groupNameAnn != null && groupNameAnn.value().length() > 0) {
+                groupName = groupNameAnn.value();
+            }
+
+            // Mapper.apply will not return null, so disable the inspection warning
+            //noinspection ConstantConditions
+            String cacheControlHeader = _cacheControlMapper.apply(groupName == null ? "default" : groupName).orNull();
+
+            if (groupNameAnn != null || abstractResourceMethod.isAnnotationPresent(io.dropwizard.jersey.caching.CacheControl.class)) {
+                dispatcher = new CachingDispatcher(dispatcher, _cache, groupName, cacheControlHeader);
             }
 
             return dispatcher;
@@ -58,10 +75,14 @@ public class CacheResourceMethodDispatchAdapter implements ResourceMethodDispatc
     public static class CachingDispatcher implements RequestDispatcher {
         private final RequestDispatcher _dispatcher;
         private final ResponseCache _cache;
+        private final String _cacheControlHeader;
+        private final String _groupNameHeader;
 
-        public CachingDispatcher(RequestDispatcher dispatcher, ResponseCache cache) {
+        public CachingDispatcher(RequestDispatcher dispatcher, ResponseCache cache, String groupName, String cacheControlHeader) {
             _dispatcher = checkNotNull(dispatcher);
             _cache = checkNotNull(cache);
+            _groupNameHeader = groupName == null ? null : "group=\"" + groupName + "\"";
+            _cacheControlHeader = cacheControlHeader; // Null is allowed
         }
 
         @Override
@@ -75,7 +96,7 @@ public class CacheResourceMethodDispatchAdapter implements ResourceMethodDispatc
                     throw new WebApplicationException(cacheResponse.get());
                 } else {
                     ContainerResponse response = (ContainerResponse) context.getResponse();
-                    response.setContainerResponseWriter(new CachingResponseWriter(response.getContainerResponseWriter(), request, _cache));
+                    response.setContainerResponseWriter(new CachingResponseWriter(response.getContainerResponseWriter(), request, _cache, _groupNameHeader, _cacheControlHeader));
                     _dispatcher.dispatch(resource, context);
                 }
             } catch (Exception ex) {
@@ -88,13 +109,17 @@ public class CacheResourceMethodDispatchAdapter implements ResourceMethodDispatc
         private final ContainerResponseWriter _wrapped;
         private final ResponseCache _cache;
         private final CacheRequestContext _request;
+        private final String _cacheControlHeader;
+        private final String _groupNameHeader;
         private ContainerResponse _response;
         private ByteArrayOutputStream _buffer;
 
-        public CachingResponseWriter(ContainerResponseWriter wrapped, CacheRequestContext request, ResponseCache cache) {
+        public CachingResponseWriter(ContainerResponseWriter wrapped, CacheRequestContext request, ResponseCache cache, String groupNameHeader, String cacheControlHeader) {
             _wrapped = checkNotNull(wrapped);
             _request = checkNotNull(request);
             _cache = checkNotNull(cache);
+            _groupNameHeader = groupNameHeader; // Null is allowed
+            _cacheControlHeader = cacheControlHeader; // Null is allowed
         }
 
         @Override
@@ -106,6 +131,14 @@ public class CacheResourceMethodDispatchAdapter implements ResourceMethodDispatc
 
         @Override
         public void finish() throws IOException {
+            if (_cacheControlHeader != null) {
+                // This needs to be done here and not in the RequestDispatcher to ensure that it overrides any other
+                // options set
+                _response.getHttpHeaders().putSingle(CACHE_CONTROL, _cacheControlHeader);
+            } else if (_groupNameHeader != null) {
+                _response.getHttpHeaders().add(CACHE_CONTROL, _groupNameHeader);
+            }
+
             byte[] content = _buffer.toByteArray();
             CacheResponseContext response = new CacheResponseContext(_response);
             _cache.put(_request, response, content);

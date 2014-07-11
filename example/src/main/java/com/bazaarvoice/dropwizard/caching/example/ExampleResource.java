@@ -1,5 +1,6 @@
 package com.bazaarvoice.dropwizard.caching.example;
 
+import com.bazaarvoice.dropwizard.caching.CacheGroup;
 import com.sun.jersey.api.core.HttpContext;
 import io.dropwizard.jersey.caching.CacheControl;
 
@@ -17,6 +18,7 @@ public class ExampleResource {
     @GET
     @Path("/test")
     @CacheControl(maxAge = 60)
+    @CacheGroup("otter")
     public ExampleResult getTestData(@Context HttpContext requestContext) {
 //        throw new RuntimeException("uh oh");
         return new ExampleResult(_count++);

@@ -1,5 +1,7 @@
 package com.bazaarvoice.dropwizard.caching;
 
+import com.google.common.base.Function;
+import com.google.common.base.Optional;
 import io.dropwizard.ConfiguredBundle;
 import io.dropwizard.setup.Bootstrap;
 import io.dropwizard.setup.Environment;
@@ -26,14 +28,7 @@ public class CachingBundle implements ConfiguredBundle<CachingBundleConfiguratio
             // caching layer needs to be able to set the date header to the date the cached response was
             // generated. Duplicate headers are unexpected, confusing, and will likely result in problems
             // for clients.
-            HttpHeaders.DATE,
-
-            // The dropwizard @CacheControl annotation will set the cache-control header for each response, even if
-            // the response was loaded from the cache and already has a cache-control header. The result is duplicate
-            // cache-control headers when the response is served from the cache.
-            // This does prevent having multiple cache-control headers, which is technically allowed, but supporting
-            // that seems to be tricky.
-            HttpHeaders.CACHE_CONTROL
+            HttpHeaders.DATE
     );
 
     public void initialize(Bootstrap<?> bootstrap) {
@@ -42,7 +37,10 @@ public class CachingBundle implements ConfiguredBundle<CachingBundleConfiguratio
 
     @Override
     public void run(CachingBundleConfiguration configuration, Environment environment) {
-        environment.jersey().register(new CacheResourceMethodDispatchAdapter(configuration.getCache().buildCache()));
+        Function<String, Optional<String>> cacheControlMapper = configuration.getCacheControl().buildMapper();
+        ResponseCache responseCache = configuration.getCache().buildCache();
+
+        environment.jersey().register(new CacheResourceMethodDispatchAdapter(responseCache, cacheControlMapper));
 
         environment.servlets().addFilter("cache", new Filter() {
             @Override
