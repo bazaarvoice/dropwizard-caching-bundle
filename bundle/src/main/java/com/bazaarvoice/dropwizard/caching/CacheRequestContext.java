@@ -2,13 +2,14 @@ package com.bazaarvoice.dropwizard.caching;
 
 import com.google.common.base.Charsets;
 import com.google.common.base.Throwables;
-import com.sun.jersey.api.core.HttpRequestContext;
 import com.sun.jersey.core.util.Base64;
 import com.sun.jersey.spi.container.ContainerRequest;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import javax.ws.rs.core.MultivaluedMap;
 import java.io.ByteArrayInputStream;
+import java.net.URI;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.util.List;
@@ -30,14 +31,18 @@ public class CacheRequestContext {
     private static final List<String> KEY_HEADERS = newArrayList(ACCEPT, ACCEPT_ENCODING, ACCEPT_LANGUAGE, ACCEPT_CHARSET);
     private static final Logger LOG = LoggerFactory.getLogger(CacheRequestContext.class);
 
-    private final HttpRequestContext _httpContext;
+    private final String _requestMethod;
+    private final URI _requestUri;
+    private final MultivaluedMap<String, String> _headers;
     private final String _requestHash;
 
     private transient RequestCacheControl _cacheControl;
     private transient Boolean _pragmaNoCache;
 
-    public CacheRequestContext(HttpRequestContext httpContext, String requestHash) {
-        _httpContext = checkNotNull(httpContext);
+    public CacheRequestContext(String requestMethod, URI requestUri, MultivaluedMap<String, String> headers, String requestHash) {
+        _requestMethod = checkNotNull(requestMethod);
+        _requestUri = checkNotNull(requestUri);
+        _headers = checkNotNull(headers);
         _requestHash = checkNotNull(requestHash);
     }
 
@@ -75,15 +80,19 @@ public class CacheRequestContext {
             request.setEntityInputStream(new ByteArrayInputStream(requestBody));
 
             String hash = new String(Base64.encode(digest.digest()), Charsets.US_ASCII);
-            return new CacheRequestContext(request, hash);
+            return new CacheRequestContext(request.getMethod(), request.getRequestUri(), request.getRequestHeaders(), hash);
         } catch (NoSuchAlgorithmException ex) {
             // This error should not occur since SHA-1 must be included with every java distribution
             throw Throwables.propagate(ex);
         }
     }
 
-    public HttpRequestContext getHttpContext() {
-        return _httpContext;
+    public URI getRequestUri() {
+        return _requestUri;
+    }
+
+    public String getRequestMethod() {
+        return _requestMethod;
     }
 
     public String getRequestHash() {
@@ -100,15 +109,20 @@ public class CacheRequestContext {
      */
     public RequestCacheControl getCacheControl() {
         if (_cacheControl == null) {
-            String cacheControlHeader = _httpContext.getHeaderValue(CACHE_CONTROL);
+            List<String> values = _headers.get(CACHE_CONTROL);
 
-            try {
-                _cacheControl = isNullOrEmpty(cacheControlHeader)
-                        ? RequestCacheControl.DEFAULT
-                        : RequestCacheControl.valueOf(cacheControlHeader);
-            } catch (IllegalArgumentException ex) {
-                _cacheControl = RequestCacheControl.DEFAULT;
-                LOG.debug("Invalid request cache control header", ex);
+            _cacheControl = RequestCacheControl.DEFAULT;
+
+            if (values != null) {
+                String cacheControlHeader = HttpHeaderUtils.join(values);
+
+                try {
+                    _cacheControl = isNullOrEmpty(cacheControlHeader)
+                            ? RequestCacheControl.DEFAULT
+                            : RequestCacheControl.valueOf(cacheControlHeader);
+                } catch (IllegalArgumentException ex) {
+                    LOG.debug("Invalid request cache control header", ex);
+                }
             }
         }
 
@@ -124,7 +138,7 @@ public class CacheRequestContext {
      */
     public boolean isPragmaNoCache() {
         if (_pragmaNoCache == null) {
-            List<String> values = _httpContext.getRequestHeader(PRAGMA);
+            List<String> values = _headers.get(PRAGMA);
 
             _pragmaNoCache = false;
 

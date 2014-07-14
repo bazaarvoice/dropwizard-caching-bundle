@@ -112,10 +112,10 @@ public class ResponseCache {
 
     private static String buildKey(CacheRequestContext request) {
         StringBuilder buffer = new StringBuilder();
-        buffer.append(request.getHttpContext().getMethod());
+        buffer.append(request.getRequestMethod());
         buffer.append(' ');
 
-        URI requestUri = request.getHttpContext().getRequestUri();
+        URI requestUri = request.getRequestUri();
         String query = requestUri.getRawQuery();
 
         buffer.append(requestUri.getRawPath());
