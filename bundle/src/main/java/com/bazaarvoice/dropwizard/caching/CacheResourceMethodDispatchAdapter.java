@@ -124,15 +124,20 @@ public class CacheResourceMethodDispatchAdapter implements ResourceMethodDispatc
 
         @Override
         public void finish() throws IOException {
-            if (_cacheControlHeader.isPresent()) {
-                // This needs to be done here and not in the RequestDispatcher to ensure that it overrides any other
-                // options set
-                _response.getHttpHeaders().putSingle(CACHE_CONTROL, _cacheControlHeader.get());
-            }
-
             byte[] content = _buffer.toByteArray();
-            CacheResponseContext response = new CacheResponseContext(_response);
-            _cache.put(_request, response, content);
+            int statusCode = _response.getStatus();
+
+            // See http://www.w3.org/Protocols/rfc2616/rfc2616-sec13.html#sec13.4
+            if (statusCode == 200 || statusCode == 203 || statusCode == 206 || statusCode == 300 || statusCode == 301 || statusCode == 410) {
+                if (_cacheControlHeader.isPresent()) {
+                    // This needs to be done here and not in the RequestDispatcher to ensure that it overrides any other
+                    // options set
+                    _response.getHttpHeaders().putSingle(CACHE_CONTROL, _cacheControlHeader.get());
+                }
+
+                CacheResponseContext response = new CacheResponseContext(_response);
+                _cache.put(_request, response, content);
+            }
 
             OutputStream wrappedStream = _wrapped.writeStatusAndHeaders(content.length, _response);
             wrappedStream.write(content);
