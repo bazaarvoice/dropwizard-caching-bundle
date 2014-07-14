@@ -1,8 +1,11 @@
 package com.bazaarvoice.dropwizard.caching;
 
+import com.google.common.base.Charsets;
 import com.google.common.base.Optional;
+import com.google.common.base.Throwables;
 import com.google.common.cache.Cache;
 import com.sun.jersey.api.core.HttpRequestContext;
+import com.sun.jersey.core.util.Base64;
 import org.joda.time.DateTime;
 import org.joda.time.Seconds;
 import org.slf4j.Logger;
@@ -10,12 +13,23 @@ import org.slf4j.LoggerFactory;
 
 import javax.ws.rs.core.CacheControl;
 import javax.ws.rs.core.Response;
+import java.net.URI;
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
+import java.util.List;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutionException;
 
 import static com.google.common.base.Preconditions.checkNotNull;
+import static com.google.common.base.Strings.isNullOrEmpty;
+import static com.google.common.collect.Lists.newArrayList;
+import static com.google.common.net.HttpHeaders.ACCEPT;
+import static com.google.common.net.HttpHeaders.ACCEPT_CHARSET;
+import static com.google.common.net.HttpHeaders.ACCEPT_ENCODING;
+import static com.google.common.net.HttpHeaders.ACCEPT_LANGUAGE;
 
 public class ResponseCache {
+    private static final List<String> KEY_HEADERS = newArrayList(ACCEPT, ACCEPT_ENCODING, ACCEPT_LANGUAGE, ACCEPT_CHARSET);
     private static final Logger LOG = LoggerFactory.getLogger(ResponseCache.class);
 
     private final Cache<String, Optional<CachedResponse>> _localCache;
@@ -110,7 +124,47 @@ public class ResponseCache {
     }
 
     private static String buildKey(HttpRequestContext request) {
-        return request.getPath();
+        StringBuilder buffer = new StringBuilder();
+        buffer.append(request.getMethod());
+        buffer.append(' ');
+
+        URI requestUri = request.getRequestUri();
+        String query = requestUri.getRawQuery();
+
+        buffer.append(requestUri.getRawPath());
+
+        if (!isNullOrEmpty(query)) {
+            buffer.append('?').append(query);
+        }
+
+        buffer.append('#');
+
+        try {
+            MessageDigest headerDigest = MessageDigest.getInstance("SHA-1");
+
+            for (String header : KEY_HEADERS) {
+                headerDigest.update(header.getBytes(Charsets.UTF_8));
+                headerDigest.update((byte) 0xFD);
+
+                List<String> headerValues = request.getRequestHeader(header);
+
+                if (headerValues != null && headerValues.size() > 0) {
+                    for (String value : headerValues) {
+                        headerDigest.update(value.getBytes(Charsets.UTF_8));
+                        headerDigest.update((byte) 0xFE);
+                    }
+                }
+
+                headerDigest.update((byte) 0xFF);
+            }
+
+            buffer.append(new String(Base64.encode(headerDigest.digest()), Charsets.US_ASCII));
+        } catch (NoSuchAlgorithmException e) {
+            // This error should never occur since SHA-1 is included with all java distributions
+            throw Throwables.propagate(e);
+        }
+
+        return buffer.toString();
     }
 
     /**
