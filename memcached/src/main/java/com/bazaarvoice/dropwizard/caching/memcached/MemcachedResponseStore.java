@@ -15,6 +15,7 @@ import static com.google.common.base.Preconditions.checkNotNull;
  * HTTP response cache store backed by memcached.
  */
 public class MemcachedResponseStore extends ResponseStore {
+    private static final char KEY_PREFIX_SEPARATOR = ':';
     private static final Logger LOG = LoggerFactory.getLogger(MemcachedResponseStore.class);
 
     private final MemcachedClient _client;
@@ -27,8 +28,8 @@ public class MemcachedResponseStore extends ResponseStore {
         _client = checkNotNull(client);
         _readOnly = readOnly;
 
-        if (keyPrefix.endsWith("/")) {
-            _keyPrefix = keyPrefix.substring(0, keyPrefix.lastIndexOf('/'));
+        if (keyPrefix.length() > 0 && keyPrefix.charAt(keyPrefix.length() - 1) == KEY_PREFIX_SEPARATOR) {
+            _keyPrefix = keyPrefix.substring(0, keyPrefix.lastIndexOf(KEY_PREFIX_SEPARATOR));
         } else {
             _keyPrefix = keyPrefix;
         }
@@ -95,8 +96,8 @@ public class MemcachedResponseStore extends ResponseStore {
         StringBuilder buffer = new StringBuilder(_keyPrefix.length() + 1 + key.length());
         buffer.append(_keyPrefix);
 
-        if (key.charAt(0) != '/') {
-            buffer.append('/');
+        if (key.charAt(0) != KEY_PREFIX_SEPARATOR) {
+            buffer.append(KEY_PREFIX_SEPARATOR);
         }
 
         buffer.append(key);
