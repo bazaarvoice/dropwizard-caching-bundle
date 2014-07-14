@@ -139,6 +139,7 @@ public class CacheResourceMethodDispatchAdapter implements ResourceMethodDispatc
                 _cache.put(_request, response, content);
             }
 
+            // This must be done after the cache put to ensure all the headers are set correctly
             OutputStream wrappedStream = _wrapped.writeStatusAndHeaders(content.length, _response);
             wrappedStream.write(content);
             _wrapped.finish();
