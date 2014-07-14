@@ -24,6 +24,26 @@ import static com.google.common.base.Preconditions.checkNotNull;
 @JsonTypeName("memcached")
 public class MemcachedResponseStoreFactory implements ResponseStoreFactory {
     private List<InetSocketAddress> _servers = ImmutableList.of();
+    private String _keyPrefix = "";
+    private boolean _readOnly;
+
+    public boolean isReadOnly() {
+        return _readOnly;
+    }
+
+    @JsonProperty
+    public void setReadOnly(boolean readOnly) {
+        _readOnly = readOnly;
+    }
+
+    public String getKeyPrefix() {
+        return _keyPrefix;
+    }
+
+    @JsonProperty
+    public void setKeyPrefix(String keyPrefix) {
+        _keyPrefix = checkNotNull(keyPrefix);
+    }
 
     public List<InetSocketAddress> getServers() {
         return _servers;
@@ -66,7 +86,7 @@ public class MemcachedResponseStoreFactory implements ResponseStoreFactory {
             if (getServers().size() == 0) {
                 return ResponseStore.NULL_STORE;
             } else {
-                return new MemcachedResponseStore(new MemcachedClient(getServers()));
+                return new MemcachedResponseStore(new MemcachedClient(getServers()), _keyPrefix, _readOnly);
             }
         } catch (IOException ex) {
             throw Throwables.propagate(ex);
