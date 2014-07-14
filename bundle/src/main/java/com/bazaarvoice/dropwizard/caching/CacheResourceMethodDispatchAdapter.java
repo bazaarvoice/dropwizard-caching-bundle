@@ -5,6 +5,7 @@ import com.google.common.base.Optional;
 import com.google.common.base.Throwables;
 import com.sun.jersey.api.core.HttpContext;
 import com.sun.jersey.api.model.AbstractResourceMethod;
+import com.sun.jersey.spi.container.ContainerRequest;
 import com.sun.jersey.spi.container.ContainerResponse;
 import com.sun.jersey.spi.container.ContainerResponseWriter;
 import com.sun.jersey.spi.container.ResourceMethodDispatchAdapter;
@@ -83,7 +84,7 @@ public class CacheResourceMethodDispatchAdapter implements ResourceMethodDispatc
         @Override
         public void dispatch(Object resource, HttpContext context) {
             try {
-                CacheRequestContext request = new CacheRequestContext(context.getRequest());
+                CacheRequestContext request = CacheRequestContext.build((ContainerRequest) context.getRequest());
                 Optional<Response> cacheResponse = _cache.get(request);
 
                 if (cacheResponse.isPresent()) {

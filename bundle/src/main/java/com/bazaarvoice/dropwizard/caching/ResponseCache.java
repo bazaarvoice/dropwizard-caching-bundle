@@ -1,11 +1,7 @@
 package com.bazaarvoice.dropwizard.caching;
 
-import com.google.common.base.Charsets;
 import com.google.common.base.Optional;
-import com.google.common.base.Throwables;
 import com.google.common.cache.Cache;
-import com.sun.jersey.api.core.HttpRequestContext;
-import com.sun.jersey.core.util.Base64;
 import org.joda.time.DateTime;
 import org.joda.time.Seconds;
 import org.slf4j.Logger;
@@ -14,22 +10,13 @@ import org.slf4j.LoggerFactory;
 import javax.ws.rs.core.CacheControl;
 import javax.ws.rs.core.Response;
 import java.net.URI;
-import java.security.MessageDigest;
-import java.security.NoSuchAlgorithmException;
-import java.util.List;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutionException;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 import static com.google.common.base.Strings.isNullOrEmpty;
-import static com.google.common.collect.Lists.newArrayList;
-import static com.google.common.net.HttpHeaders.ACCEPT;
-import static com.google.common.net.HttpHeaders.ACCEPT_CHARSET;
-import static com.google.common.net.HttpHeaders.ACCEPT_ENCODING;
-import static com.google.common.net.HttpHeaders.ACCEPT_LANGUAGE;
 
 public class ResponseCache {
-    private static final List<String> KEY_HEADERS = newArrayList(ACCEPT, ACCEPT_ENCODING, ACCEPT_LANGUAGE, ACCEPT_CHARSET);
     private static final Logger LOG = LoggerFactory.getLogger(ResponseCache.class);
 
     private final Cache<String, Optional<CachedResponse>> _localCache;
@@ -43,7 +30,7 @@ public class ResponseCache {
     public Optional<Response> get(CacheRequestContext request) {
         // If request allows a cached response to be returned
         if (isServableFromCache(request)) {
-            String cacheKey = buildKey(request.getHttpContext());
+            String cacheKey = buildKey(request);
             StoreLoader loader = new StoreLoader(_store, cacheKey);
             CachedResponse cachedResponse = loadResponse(cacheKey, loader);
 
@@ -98,7 +85,7 @@ public class ResponseCache {
             response.setExpires(responseDate.plusSeconds(response.getSharedCacheMaxAge()));
 
             CachedResponse cachedResponse = CachedResponse.build(response.getStatusCode(), response.getHttpContext().getHttpHeaders(), content);
-            String cacheKey = buildKey(request.getHttpContext());
+            String cacheKey = buildKey(request);
 
             _localCache.put(cacheKey, Optional.of(cachedResponse));
             _store.put(cacheKey, cachedResponse);
@@ -123,12 +110,12 @@ public class ResponseCache {
         }
     }
 
-    private static String buildKey(HttpRequestContext request) {
+    private static String buildKey(CacheRequestContext request) {
         StringBuilder buffer = new StringBuilder();
-        buffer.append(request.getMethod());
+        buffer.append(request.getHttpContext().getMethod());
         buffer.append(' ');
 
-        URI requestUri = request.getRequestUri();
+        URI requestUri = request.getHttpContext().getRequestUri();
         String query = requestUri.getRawQuery();
 
         buffer.append(requestUri.getRawPath());
@@ -137,33 +124,7 @@ public class ResponseCache {
             buffer.append('?').append(query);
         }
 
-        buffer.append('#');
-
-        try {
-            MessageDigest headerDigest = MessageDigest.getInstance("SHA-1");
-
-            for (String header : KEY_HEADERS) {
-                headerDigest.update(header.getBytes(Charsets.UTF_8));
-                headerDigest.update((byte) 0xFD);
-
-                List<String> headerValues = request.getRequestHeader(header);
-
-                if (headerValues != null && headerValues.size() > 0) {
-                    for (String value : headerValues) {
-                        headerDigest.update(value.getBytes(Charsets.UTF_8));
-                        headerDigest.update((byte) 0xFE);
-                    }
-                }
-
-                headerDigest.update((byte) 0xFF);
-            }
-
-            buffer.append(new String(Base64.encode(headerDigest.digest()), Charsets.US_ASCII));
-        } catch (NoSuchAlgorithmException e) {
-            // This error should never occur since SHA-1 is included with all java distributions
-            throw Throwables.propagate(e);
-        }
-
+        buffer.append('#').append(request.getRequestHash());
         return buffer.toString();
     }
 
