@@ -32,6 +32,8 @@ configured.
 ## Cache Control
 
 The first step in configuring caching is to specify the caching options for different resource methods.
+Use the `com.bazaarvoice.dropwizard.caching.CacheGroup` annotation on resource methods to set the
+group name.
  
 ```yaml
 # A list of caching configuration options. The first set of options that match a resource will be
@@ -95,6 +97,14 @@ cacheControl:
       extensions:               # Custom cache-control directives.
         bare:                   # With no or empty value, output is a bare directive
         has-value: 17           # With a value, output is has-value="17"
+```
+
+### Examples
+
+```yaml
+# Cache all resources (GET methods and resources with an explicit group) for 30 seconds.
+cacheControl:
+    - maxAge: 30s
 ```
 
 # TODO
