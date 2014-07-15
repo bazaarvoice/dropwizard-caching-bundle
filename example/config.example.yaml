@@ -3,16 +3,16 @@ cache:
     maximumSize: 5
     expire: 30m
 
-#  store:
-#    type: memcached
-#    servers:
-#      - localhost:11211
+  store:
+    type: memcached
+    servers:
+      - localhost:11211
 
 cacheControl:
   - group: ott*
     maxAge: 10s
-    flags:
-      - must-revalidate
+#    flags:
+#      - must-revalidate
     extensions:
       cool: # bare directive
       extended-value: "ack!"

@@ -11,6 +11,7 @@ import com.sun.jersey.spi.container.ContainerResponseWriter;
 import com.sun.jersey.spi.container.ResourceMethodDispatchAdapter;
 import com.sun.jersey.spi.container.ResourceMethodDispatchProvider;
 import com.sun.jersey.spi.dispatch.RequestDispatcher;
+import com.yammer.dropwizard.jersey.caching.CacheControl;
 
 import javax.ws.rs.WebApplicationException;
 import javax.ws.rs.core.Response;
@@ -55,7 +56,7 @@ public class CacheResourceMethodDispatchAdapter implements ResourceMethodDispatc
             RequestDispatcher dispatcher = _provider.create(abstractResourceMethod);
             CacheGroup groupNameAnn = abstractResourceMethod.getAnnotation(CacheGroup.class);
 
-            if (groupNameAnn != null || abstractResourceMethod.isAnnotationPresent(io.dropwizard.jersey.caching.CacheControl.class)) {
+            if (groupNameAnn != null || abstractResourceMethod.isAnnotationPresent(CacheControl.class)) {
                 String groupName = groupNameAnn == null ? "" : groupNameAnn.value();
                 dispatcher = new CachingDispatcher(dispatcher, _cache, _cacheControlMapper.apply(groupName));
             } else if (abstractResourceMethod.getHttpMethod().equals("GET")) {

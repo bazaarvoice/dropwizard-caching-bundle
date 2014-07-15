@@ -5,7 +5,7 @@ import com.google.common.base.Optional;
 import com.google.common.cache.AbstractCache;
 import com.google.common.cache.Cache;
 import com.google.common.cache.CacheBuilder;
-import io.dropwizard.util.Duration;
+import com.yammer.dropwizard.util.Duration;
 
 import javax.annotation.Nullable;
 

@@ -12,6 +12,7 @@ import org.joda.time.format.DateTimeFormatter;
 
 import javax.annotation.Nullable;
 import java.util.Collections;
+import java.util.Objects;
 import java.util.Set;
 
 import static com.google.common.base.Preconditions.checkNotNull;
@@ -83,7 +84,7 @@ class HttpHeaderUtils {
      */
     public static Set<String> headerNames(String... names) {
         // Only the keys of the map are used. The value of the map is not used.
-        StringKeyIgnoreCaseMultivaluedMap<Object> headers = new StringKeyIgnoreCaseMultivaluedMap<>();
+        StringKeyIgnoreCaseMultivaluedMap<Object> headers = new StringKeyIgnoreCaseMultivaluedMap<Object>();
 
         for (String name : names) {
             headers.add(name, true);

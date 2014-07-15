@@ -2,9 +2,9 @@ package com.bazaarvoice.dropwizard.caching;
 
 import com.google.common.base.Function;
 import com.google.common.base.Optional;
-import io.dropwizard.ConfiguredBundle;
-import io.dropwizard.setup.Bootstrap;
-import io.dropwizard.setup.Environment;
+import com.yammer.dropwizard.ConfiguredBundle;
+import com.yammer.dropwizard.config.Bootstrap;
+import com.yammer.dropwizard.config.Environment;
 
 import javax.servlet.Filter;
 import javax.servlet.FilterChain;
@@ -40,9 +40,9 @@ public class CachingBundle implements ConfiguredBundle<CachingBundleConfiguratio
         Function<String, Optional<String>> cacheControlMapper = configuration.getCacheControl().buildMapper();
         ResponseCache responseCache = configuration.getCache().buildCache();
 
-        environment.jersey().register(new CacheResourceMethodDispatchAdapter(responseCache, cacheControlMapper));
+        environment.addProvider(new CacheResourceMethodDispatchAdapter(responseCache, cacheControlMapper));
 
-        environment.servlets().addFilter("cache", new Filter() {
+        environment.addFilter(new Filter() {
             @Override
             public void init(FilterConfig filterConfig) throws ServletException {
                 // Nothing to do
@@ -68,6 +68,6 @@ public class CachingBundle implements ConfiguredBundle<CachingBundleConfiguratio
             public void destroy() {
                 // Nothing to do
             }
-        }).addMappingForUrlPatterns(null, false, "*");
+        }, "*");
     }
 }

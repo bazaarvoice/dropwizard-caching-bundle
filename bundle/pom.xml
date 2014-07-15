@@ -15,8 +15,13 @@
     <dependencies>
 
         <dependency>
-            <groupId>io.dropwizard</groupId>
+            <groupId>com.yammer.dropwizard</groupId>
             <artifactId>dropwizard-core</artifactId>
+        </dependency>
+
+        <dependency>
+            <groupId>net.spy</groupId>
+            <artifactId>spymemcached</artifactId>
         </dependency>
 
         <dependency>

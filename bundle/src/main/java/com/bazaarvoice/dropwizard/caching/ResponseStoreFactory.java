@@ -1,13 +1,15 @@
 package com.bazaarvoice.dropwizard.caching;
 
+import com.bazaarvoice.dropwizard.caching.memcached.MemcachedResponseStoreFactory;
+import com.fasterxml.jackson.annotation.JsonSubTypes;
 import com.fasterxml.jackson.annotation.JsonTypeInfo;
-import io.dropwizard.jackson.Discoverable;
 
 /**
  * Configuration options for shared cache store.
  */
 @JsonTypeInfo(use = JsonTypeInfo.Id.NAME, property = "type")
-public interface ResponseStoreFactory extends Discoverable {
+@JsonSubTypes({@JsonSubTypes.Type(MemcachedResponseStoreFactory.class)})
+public interface ResponseStoreFactory {
     public static final ResponseStoreFactory NULL_STORE_FACTORY = new ResponseStoreFactory() {
         @Override
         public ResponseStore createStore() {

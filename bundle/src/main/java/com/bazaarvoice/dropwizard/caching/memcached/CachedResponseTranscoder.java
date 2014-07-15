@@ -21,6 +21,7 @@ import java.util.List;
 import java.util.Map;
 
 import static com.google.common.base.Strings.isNullOrEmpty;
+import static com.google.common.collect.Lists.newArrayList;
 import static java.lang.String.format;
 
 /**
@@ -102,11 +103,11 @@ public class CachedResponseTranscoder implements Transcoder<CachedResponse> {
     }
 
     private static MultivaluedMap<String, String> readHeaders(BufferedReader reader) throws IOException {
-        StringKeyIgnoreCaseMultivaluedMap<String> headers = new StringKeyIgnoreCaseMultivaluedMap<>();
+        StringKeyIgnoreCaseMultivaluedMap<String> headers = new StringKeyIgnoreCaseMultivaluedMap<String>();
         String line;
 
         while ((line = reader.readLine()) != null) {
-            List<String> headerParts = HEADER_SPLITTER.splitToList(line);
+            List<String> headerParts = newArrayList(HEADER_SPLITTER.split(line));
 
             if (headerParts.size() != 2) {
                 throw new IOException("Corrupt header");
@@ -134,7 +135,7 @@ public class CachedResponseTranscoder implements Transcoder<CachedResponse> {
             throw new IOException("Missing status line");
         }
 
-        List<String> parts = STATUS_SPLITTER.splitToList(statusLine);
+        List<String> parts = newArrayList(STATUS_SPLITTER.split(statusLine));
 
         if (parts.size() != 3 || !parts.get(0).equals("HTTP/1.1")) {
             throw new IOException("Corrupt status line");

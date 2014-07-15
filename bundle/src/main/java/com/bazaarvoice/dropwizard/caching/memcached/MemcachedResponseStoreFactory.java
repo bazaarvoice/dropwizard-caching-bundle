@@ -2,6 +2,7 @@ package com.bazaarvoice.dropwizard.caching.memcached;
 
 import com.bazaarvoice.dropwizard.caching.ResponseStore;
 import com.bazaarvoice.dropwizard.caching.ResponseStoreFactory;
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.annotation.JsonTypeName;
 import com.google.common.base.Function;
@@ -16,7 +17,6 @@ import java.net.InetSocketAddress;
 import java.util.Arrays;
 import java.util.List;
 
-import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkNotNull;
 
 /**
@@ -50,6 +50,7 @@ public class MemcachedResponseStoreFactory implements ResponseStoreFactory {
         return _servers;
     }
 
+    @JsonIgnore
     public void setServers(List<InetSocketAddress> servers) {
         checkNotNull(servers);
         _servers = ImmutableList.copyOf(servers);

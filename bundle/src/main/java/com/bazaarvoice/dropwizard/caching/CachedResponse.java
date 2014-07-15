@@ -70,7 +70,7 @@ public class CachedResponse {
     }
 
     private static MultivaluedMap<String, String> copyHeaders(Iterable<Map.Entry<String, List<Object>>> headers) {
-        StringKeyIgnoreCaseMultivaluedMap<String> copy = new StringKeyIgnoreCaseMultivaluedMap<>();
+        StringKeyIgnoreCaseMultivaluedMap<String> copy = new StringKeyIgnoreCaseMultivaluedMap<String>();
 
         for (Map.Entry<String, List<Object>> header : headers) {
             if (!NON_CACHEABLE_HEADERS.contains(header.getKey())) {
@@ -80,7 +80,7 @@ public class CachedResponse {
             }
         }
 
-        return new UnmodifiableMultivaluedMap<>(copy);
+        return new UnmodifiableMultivaluedMap<String, String>(copy);
     }
 
     /**

@@ -10,7 +10,7 @@ import com.google.common.base.Splitter;
 import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
-import io.dropwizard.util.Duration;
+import com.yammer.dropwizard.util.Duration;
 
 import javax.ws.rs.core.CacheControl;
 import java.util.Map;

@@ -4,7 +4,7 @@ import com.bazaarvoice.dropwizard.caching.CacheGroup;
 import com.google.common.base.Function;
 import com.google.common.collect.FluentIterable;
 import com.sun.jersey.api.core.HttpContext;
-import io.dropwizard.jersey.caching.CacheControl;
+import com.yammer.dropwizard.jersey.caching.CacheControl;
 
 import javax.ws.rs.GET;
 import javax.ws.rs.POST;
