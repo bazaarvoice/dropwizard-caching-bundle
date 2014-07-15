@@ -138,6 +138,8 @@ public class CacheResourceMethodDispatchAdapter implements ResourceMethodDispatc
 
                 CacheResponseContext response = new CacheResponseContext(_response);
                 _cache.put(_request, response, content);
+            } else {
+                _response.getHttpHeaders().remove(CACHE_CONTROL);
             }
 
             // This must be done after the cache put to ensure all the headers are set correctly
