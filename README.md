@@ -1,5 +1,25 @@
 Response caching bundle for Dropwizard resources.
 
+# Initialize
+
+1. Add the maven dependency:
+
+    ```xml
+    <dependency>
+        <groupId>com.bazaarvoice.dropwizard</groupId>
+        <artifactId>dropwizard-caching-bundle</artifactId>
+        <version>${dropwizard-caching-bundle.version}</version>
+    </dependency>
+    ```
+2. Modify your application configuration class to implement `com.bazaarvoice.dropwizard.caching.CachingBundleConfiguration`
+3. Load the bundle when during application bootstrap:
+
+    ```java
+    public void initialize(Bootstrap<ExampleConfiguration> bootstrap) {
+        bootstrap.addBundle(new CachingBundle());
+    }
+    ```
+
 # TODO
 
 ## Short Term
