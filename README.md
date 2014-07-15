@@ -4,6 +4,9 @@ There are two functions supported by the bundle: generate cache-control options 
 The cache-control generation can be used without the response caching. For example, if there is already an upstream
 HTTP caching proxy.
 
+The cache support handles the various HTTP request and response cache-control options to ensure that
+the resource method is only invoked if the response can not be served from the cache.
+
 # Initialize
 
 1. Add the maven dependency:
@@ -103,6 +106,7 @@ cacheControl:
 
 ```yaml
 # Cache all resources (GET methods and resources with an explicit group) for 30 seconds.
+# DANGER: this may have unexpected consequences if the resource is not expecting caching to occur.
 cacheControl:
     - maxAge: 30s
 ```
