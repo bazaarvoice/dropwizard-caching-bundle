@@ -124,7 +124,7 @@ cache:
     # Optional. Configuration for remote, shared cache storage. For example, a memcached cluster.
     # The local, in-memory cache is consulted first and, if not found, the store is queried.
     store:
-        - type: Type         # Type of storage. The type defines what other options are available.
+        type: Type         # Type of storage. The type defines what other options are available.
 ```
 
 ### Memcached
