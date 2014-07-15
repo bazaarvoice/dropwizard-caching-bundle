@@ -157,7 +157,6 @@ To use a memcached cluster:
 * More logging
 * Metrics reporting
 * Testing
-* Documentation
 * More efficient operation when caching is not being used, but cache-control header is being generated
     * No need to capture response content or deal with ResponseCache at all
 
