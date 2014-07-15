@@ -1,8 +1,6 @@
 package com.bazaarvoice.dropwizard.caching;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
-import com.google.common.base.Optional;
-import com.google.common.cache.Cache;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 
@@ -32,7 +30,6 @@ public class CachingConfiguration {
     }
 
     public ResponseCache buildCache() {
-        Cache<String, Optional<CachedResponse>> localCache = _local.newCacheBuilder().build();
-        return new ResponseCache(localCache, _storeFactory.createStore());
+        return new ResponseCache(_local.buildCache(), _storeFactory.createStore());
     }
 }
