@@ -107,6 +107,49 @@ cacheControl:
     - maxAge: 30s
 ```
 
+## Caching
+
+After setting the cache control options, an in-process response cache can be enabled, possibly
+backed by an external store.
+
+```yaml
+cache:
+    # Optional. Configuration options for the local, in-memory cache. If no options are specified,
+    # no local response caching occurs.
+    local:
+        maximumSize: Number  # Maximum number of items to store in the in-memory cache.
+        expire: Duration     # Maximum amount of time to keep an item in the in-memory cache. This
+                             # may be longer or shorter than the maxAge for the response.
+          
+    # Optional. Configuration for remote, shared cache storage. For example, a memcached cluster.
+    # The local, in-memory cache is consulted first and, if not found, the store is queried.
+    store:
+        - type: Type         # Type of storage. The type defines what other options are available.
+```
+
+### Memcached
+
+To use a memcached cluster:
+
+1. Add the maven dependency:
+
+    ```xml
+    <dependency>
+        <groupId>com.bazaarvoice.dropwizard</groupId>
+        <artifactId>dropwizard-caching-memcached</artifactId>
+        <version>${dropwizard-caching-bundle.version}</version>
+    </dependency>
+    ```
+2. Configure memcached
+
+    ```yaml
+    cache:
+        store:
+            type: memcached
+            keyPrefix: String    # Prefix to add to all cache keys.
+            readOnly: Boolean    # True to only read from the cache, but not update. Default false.
+    ```
+
 # TODO
 
 ## Short Term
