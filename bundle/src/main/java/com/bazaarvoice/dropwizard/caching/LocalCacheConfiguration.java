@@ -2,12 +2,9 @@ package com.bazaarvoice.dropwizard.caching;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.google.common.base.Optional;
-import com.google.common.cache.AbstractCache;
 import com.google.common.cache.Cache;
 import com.google.common.cache.CacheBuilder;
 import com.yammer.dropwizard.util.Duration;
-
-import javax.annotation.Nullable;
 
 import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkNotNull;
@@ -44,18 +41,14 @@ public class LocalCacheConfiguration {
     }
 
     public Cache<String, Optional<CachedResponse>> buildCache() {
-        if (!_expire.isPresent() || !_maximumSize.isPresent()) {
-            // No local cache storage
-            return new AbstractCache<String, Optional<CachedResponse>>() {
-                @Nullable
-                @Override
-                public Optional<CachedResponse> getIfPresent(Object key) {
-                    return null;
-                }
-            };
-        }
-
         CacheBuilder<Object, Object> cacheBuilder = CacheBuilder.newBuilder();
+
+        if (!_expire.isPresent() && !_maximumSize.isPresent()) {
+            // No local cache storage
+            return cacheBuilder
+                    .maximumSize(0)
+                    .build();
+        }
 
         if (_expire.isPresent()) {
             Duration expire = _expire.get();
