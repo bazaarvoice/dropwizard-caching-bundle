@@ -121,14 +121,11 @@ cache:
     # Optional. Configuration options for the local, in-memory cache. If no options are specified,
     # no local response caching occurs.
     local:
-        maximumSize: Number  # Maximum number of items to store in the in-memory cache.
-                             # Can not be used in conjunction with maximumMemory.
-        maximumMemory: Size  # Maximum memory the local cache can consume.
-                             # Examples: 100MB, 10KB
-                             # Suffixes: B, KB, MB, GB, TB 
-                             # Can not be used in conjunction with maximumSize.
-        expire: Duration     # Maximum amount of time to keep an item in the in-memory cache. This
-                             # may be longer or shorter than the maxAge for the response.
+        maximumSize: Size  # Maximum memory the local cache can consume.
+                           # Examples: 100MB, 10KB
+                           # Suffixes: B, KB, MB, GB, TB 
+        expire: Duration   # Maximum amount of time to keep an item in the in-memory cache. This
+                           # may be longer or shorter than the maxAge for the response.
           
     # Optional. Configuration for remote, shared cache storage. For example, a memcached cluster.
     # The local, in-memory cache is consulted first and, if not found, the store is queried.

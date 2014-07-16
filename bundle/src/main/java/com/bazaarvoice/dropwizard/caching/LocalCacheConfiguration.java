@@ -9,27 +9,13 @@ import com.yammer.dropwizard.util.Size;
 
 import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkNotNull;
-import static com.google.common.base.Preconditions.checkState;
 
 /**
  * Configuration options for local, in-memory cache.
  */
 public class LocalCacheConfiguration {
-    private Optional<Integer> _maximumSize = Optional.absent();
     private Optional<Duration> _expire = Optional.absent();
-    private Optional<Size> _maximumMemory = Optional.absent();
-
-    public Optional<Integer> getMaximumSize() {
-        return _maximumSize;
-    }
-
-    @JsonProperty
-    public void setMaximumSize(Optional<Integer> maximumSize) {
-        checkNotNull(maximumSize);
-        checkArgument(!maximumSize.isPresent() || maximumSize.get() >= 0, "maximumSize must be >= 0 (value: {})", maximumSize);
-        checkState(!_maximumMemory.isPresent() || !maximumSize.isPresent());
-        _maximumSize = maximumSize;
-    }
+    private Optional<Size> _maximumSize = Optional.absent();
 
     public Optional<Duration> getExpire() {
         return _expire;
@@ -42,20 +28,19 @@ public class LocalCacheConfiguration {
         _expire = expire;
     }
 
-    public Optional<Size> getMaximumMemory() {
-        return _maximumMemory;
+    public Optional<Size> getMaximumSize() {
+        return _maximumSize;
     }
 
     @JsonProperty
-    public void setMaximumMemory(Optional<Size> maximumMemory) {
+    public void setMaximumSize(Optional<Size> maximumMemory) {
         checkNotNull(maximumMemory);
         checkArgument(!maximumMemory.isPresent() || maximumMemory.get().getQuantity() >= 0, "maximumMemory must be >= 0 (value: {})", maximumMemory);
-        checkState(!maximumMemory.isPresent() || !_maximumSize.isPresent());
-        _maximumMemory = maximumMemory;
+        _maximumSize = maximumMemory;
     }
 
     public Cache<String, Optional<CachedResponse>> buildCache() {
-        if (!_expire.isPresent() && !_maximumSize.isPresent() && !_maximumMemory.isPresent()) {
+        if (!_expire.isPresent() && !_maximumSize.isPresent()) {
             // No local cache storage
             return CacheBuilder.newBuilder()
                     .maximumSize(0)
@@ -70,11 +55,9 @@ public class LocalCacheConfiguration {
         }
 
         if (_maximumSize.isPresent()) {
-            cacheBuilder.maximumSize(_maximumSize.get());
-        } else if (_maximumMemory.isPresent()) {
             cacheBuilder
                     .weigher(CachedResponseWeigher.INSTANCE)
-                    .maximumWeight(_maximumMemory.get().toBytes());
+                    .maximumWeight(_maximumSize.get().toBytes());
         }
 
         return cacheBuilder.build();
