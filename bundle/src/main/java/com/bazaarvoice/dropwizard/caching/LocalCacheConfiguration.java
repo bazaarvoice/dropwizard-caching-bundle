@@ -55,7 +55,7 @@ public class LocalCacheConfiguration {
     }
 
     public Cache<String, Optional<CachedResponse>> buildCache() {
-        if (!_expire.isPresent() && !_maximumSize.isPresent() && _maximumMemory.isPresent()) {
+        if (!_expire.isPresent() && !_maximumSize.isPresent() && !_maximumMemory.isPresent()) {
             // No local cache storage
             return CacheBuilder.newBuilder()
                     .maximumSize(0)
