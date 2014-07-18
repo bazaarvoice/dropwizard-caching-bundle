@@ -5,5 +5,6 @@ package com.bazaarvoice.dropwizard.caching;
  */
 public interface CachingBundleConfiguration {
     CachingConfiguration getCache();
+
     CacheControlConfiguration getCacheControl();
 }

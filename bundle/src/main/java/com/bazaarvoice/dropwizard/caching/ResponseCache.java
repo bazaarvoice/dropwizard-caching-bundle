@@ -2,6 +2,9 @@ package com.bazaarvoice.dropwizard.caching;
 
 import com.google.common.base.Optional;
 import com.google.common.cache.Cache;
+import com.yammer.metrics.core.Counter;
+import com.yammer.metrics.core.Gauge;
+import com.yammer.metrics.core.MetricsRegistry;
 import org.joda.time.DateTime;
 import org.joda.time.Seconds;
 import org.slf4j.Logger;
@@ -11,7 +14,6 @@ import javax.ws.rs.core.CacheControl;
 import javax.ws.rs.core.Response;
 import java.net.URI;
 import java.util.concurrent.Callable;
-import java.util.concurrent.ExecutionException;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 import static com.google.common.base.Strings.isNullOrEmpty;
@@ -19,12 +21,21 @@ import static com.google.common.base.Strings.isNullOrEmpty;
 public class ResponseCache {
     private static final Logger LOG = LoggerFactory.getLogger(ResponseCache.class);
 
-    private final Cache<String, Optional<CachedResponse>> _localCache;
+    private final LocalCache _localCache;
     private final ResponseStore _store;
+    private final Counter _hits;
+    private final Counter _misses;
 
-    public ResponseCache(Cache<String, Optional<CachedResponse>> localCache, ResponseStore store) {
-        _localCache = checkNotNull(localCache);
-        _store = failTrap(checkNotNull(store));
+    public ResponseCache(Cache<String, CachedResponse> localCache, ResponseStore store, MetricsRegistry metricsRegistry) {
+        checkNotNull(localCache, "localCache");
+        checkNotNull(store, "store");
+        checkNotNull(metricsRegistry, "metricsRegistry");
+
+        _localCache = new LocalCache(localCache, metricsRegistry);
+        _store = failTrap(store, metricsRegistry);
+
+        _hits = newCounter(metricsRegistry, "hits");
+        _misses = newCounter(metricsRegistry, "misses");
     }
 
     public Optional<Response> get(CacheRequestContext request) {
@@ -32,7 +43,7 @@ public class ResponseCache {
         if (isServableFromCache(request)) {
             String cacheKey = buildKey(request);
             StoreLoader loader = new StoreLoader(_store, cacheKey);
-            CachedResponse cachedResponse = loadResponse(cacheKey, loader);
+            CachedResponse cachedResponse = _localCache.get(cacheKey, loader);
 
             if (cachedResponse != null && cachedResponse.hasExpiration()) {
                 DateTime now = DateTime.now();
@@ -44,7 +55,7 @@ public class ResponseCache {
                     // Check if the backing store has a fresher copy of the response
 
                     _localCache.invalidate(cacheKey);
-                    cachedResponse = loadResponse(cacheKey, loader);
+                    cachedResponse = _localCache.get(cacheKey, loader);
 
                     if (cachedResponse != null && cachedResponse.hasExpiration() && isCacheAcceptable(request, now, cachedResponse)) {
                         return buildResponse(request, cacheKey, cachedResponse, now);
@@ -53,11 +64,13 @@ public class ResponseCache {
             }
         }
 
+        _misses.inc();
+
         if (isOnlyCacheAllowed(request)) {
             return Optional.of(Response.status(HttpUtils.GATEWAY_TIMEOUT).build());
+        } else {
+            return Optional.absent();
         }
-
-        return Optional.absent();
     }
 
     private Optional<Response> buildResponse(CacheRequestContext request, String cacheKey, CachedResponse response, DateTime now) {
@@ -66,6 +79,8 @@ public class ResponseCache {
             _store.invalidate(cacheKey);
             _localCache.invalidate(cacheKey);
         }
+
+        _hits.inc();
 
         return Optional.of(response.response(now).build());
     }
@@ -87,26 +102,8 @@ public class ResponseCache {
             CachedResponse cachedResponse = CachedResponse.build(response.getStatusCode(), response.getHttpContext().getHttpHeaders(), content);
             String cacheKey = buildKey(request);
 
-            _localCache.put(cacheKey, Optional.of(cachedResponse));
+            _localCache.put(cacheKey, cachedResponse);
             _store.put(cacheKey, cachedResponse);
-        }
-    }
-
-    /**
-     * Load the response from the local guava cache (which loads from the response store if necessary).
-     */
-    private CachedResponse loadResponse(String key, StoreLoader loader) {
-        try {
-            Optional<CachedResponse> response = _localCache.get(key, loader);
-
-            return response == null
-                    ? null
-                    : response.orNull();
-        } catch (ExecutionException ex) {
-            // Since the store is wrapped up so exceptions are swallowed, there should be no way for this exception to
-            // occur.
-            LOG.warn("Failed to load response from cache: key={}", key, ex);
-            return null;
         }
     }
 
@@ -227,7 +224,7 @@ public class ResponseCache {
         return !responseExpires.isBefore(now);
     }
 
-    private static class StoreLoader implements Callable<Optional<CachedResponse>> {
+    private static class StoreLoader implements Callable<CachedResponse> {
         boolean invoked;
         final ResponseStore store;
         final String key;
@@ -238,41 +235,74 @@ public class ResponseCache {
         }
 
         @Override
-        public Optional<CachedResponse> call() throws Exception {
+        public CachedResponse call() throws Exception {
             if (invoked) {
-                return Optional.absent();
+                return null;
             }
 
             this.invoked = true;
-            return this.store.get(this.key);
+            Optional<CachedResponse> response = this.store.get(this.key);
+
+            if (!response.isPresent()) {
+                throw new CacheKeyNotFoundException();
+            }
+
+            return response.get();
         }
+    }
+
+    private static Counter newCounter(MetricsRegistry registry, String name) {
+        return registry.newCounter(ResponseCache.class, name);
+    }
+
+    private static class CacheKeyNotFoundException extends RuntimeException {
     }
 
     /**
      * Wrap the given store so that any exceptions for store methods are logged with the given logger and not
      * propagated. If the store is absent, {@link ResponseStore#NULL_STORE} is returned.
      */
-    private static ResponseStore failTrap(ResponseStore store) {
+    private static ResponseStore failTrap(ResponseStore store, MetricsRegistry metricsRegistry) {
         if (store == ResponseStore.NULL_STORE) {
             return ResponseStore.NULL_STORE;
         } else {
-            return new FailTrap(store);
+            return new FailTrap(store, metricsRegistry);
         }
     }
 
     private static class FailTrap extends ResponseStore {
+        private final Counter _hits;
+        private final Counter _misses;
+        private final Counter _exceptions;
+        private final Counter _puts;
+        private final Counter _evictions;
         private final ResponseStore _delegate;
 
-        public FailTrap(ResponseStore delegate) {
+        public FailTrap(ResponseStore delegate, MetricsRegistry metricsRegistry) {
             _delegate = checkNotNull(delegate);
+
+            _hits = newCounter(metricsRegistry, "store-hits");
+            _misses = newCounter(metricsRegistry, "store-misses");
+            _exceptions = newCounter(metricsRegistry, "store-exceptions");
+            _puts = newCounter(metricsRegistry, "store-puts");
+            _evictions = newCounter(metricsRegistry, "store-evictions");
         }
 
         @Override
         public Optional<CachedResponse> get(String key) {
             try {
-                return _delegate.get(key);
+                Optional<CachedResponse> result = _delegate.get(key);
+
+                if (result.isPresent()) {
+                    _hits.inc();
+                } else {
+                    _misses.inc();
+                }
+
+                return result;
             } catch (Exception ex) {
                 LOG.warn("Response cache store get operation failed: key={}", key, ex);
+                _exceptions.inc();
                 return Optional.absent();
             }
         }
@@ -281,8 +311,10 @@ public class ResponseCache {
         public void put(String key, CachedResponse response) {
             try {
                 _delegate.put(key, response);
+                _puts.inc();
             } catch (Exception ex) {
                 LOG.warn("Response cache store put operation failed: key={}, response={}", key, response, ex);
+                _exceptions.inc();
             }
         }
 
@@ -290,9 +322,64 @@ public class ResponseCache {
         public void invalidate(String key) {
             try {
                 _delegate.invalidate(key);
+                _evictions.inc();
             } catch (Exception ex) {
                 LOG.warn("Response cache store invalidation operation failed: key={}", key, ex);
+                _exceptions.inc();
             }
+        }
+    }
+
+    private static final class LocalCache {
+        private final Cache<String, CachedResponse> _delegate;
+
+        private final Counter _hits;
+        private final Counter _misses;
+        private final Counter _evictions;
+
+        public LocalCache(Cache<String, CachedResponse> delegate, MetricsRegistry metricsRegistry) {
+            _delegate = checkNotNull(delegate);
+
+            _hits = newCounter(metricsRegistry, "local-hits");
+            _misses = newCounter(metricsRegistry, "local-misses");
+            _evictions = newCounter(metricsRegistry, "local-evictions");
+
+            metricsRegistry.newGauge(ResponseCache.class, "local-count", new Gauge<Long>() {
+                @Override
+                public Long value() {
+                    return _delegate.size();
+                }
+            });
+        }
+
+        public void invalidate(String key) {
+            _delegate.invalidate(key);
+            _evictions.inc();
+        }
+
+        public CachedResponse get(String key, StoreLoader loader) {
+            CachedResponse response;
+
+            try {
+                response = _delegate.get(key, loader);
+            } catch (CacheKeyNotFoundException ex) {
+                response = null;
+            } catch (Throwable ex) {
+                LOG.warn("Failed to load response from cache: key={}", key, ex);
+                response = null;
+            }
+
+            if (response == null) {
+                _misses.inc();
+            } else if (!loader.invoked) {
+                _hits.inc();
+            }
+
+            return response;
+        }
+
+        public void put(String key, CachedResponse response) {
+            _delegate.put(key, response);
         }
     }
 }

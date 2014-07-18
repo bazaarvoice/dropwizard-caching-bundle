@@ -39,25 +39,22 @@ public class LocalCacheConfiguration {
         _maximumSize = maximumMemory;
     }
 
-    public Cache<String, Optional<CachedResponse>> buildCache() {
-        if (!_expire.isPresent() && !_maximumSize.isPresent()) {
-            // No local cache storage
-            return CacheBuilder.newBuilder()
-                    .maximumSize(0)
-                    .build();
-        }
-
+    public Cache<String, CachedResponse> buildCache() {
         CacheBuilder<Object, Object> cacheBuilder = CacheBuilder.newBuilder();
 
-        if (_expire.isPresent()) {
-            Duration expire = _expire.get();
-            cacheBuilder.expireAfterWrite(expire.getQuantity(), expire.getUnit());
-        }
+        if (!_expire.isPresent() && !_maximumSize.isPresent()) {
+            cacheBuilder.maximumSize(0);
+        } else {
+            if (_expire.isPresent()) {
+                Duration expire = _expire.get();
+                cacheBuilder.expireAfterWrite(expire.getQuantity(), expire.getUnit());
+            }
 
-        if (_maximumSize.isPresent()) {
-            cacheBuilder
-                    .weigher(CachedResponseWeigher.INSTANCE)
-                    .maximumWeight(_maximumSize.get().toBytes());
+            if (_maximumSize.isPresent()) {
+                cacheBuilder
+                        .weigher(CachedResponseWeigher.INSTANCE)
+                        .maximumWeight(_maximumSize.get().toBytes());
+            }
         }
 
         return cacheBuilder.build();

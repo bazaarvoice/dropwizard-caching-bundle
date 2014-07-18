@@ -12,7 +12,6 @@ import org.joda.time.format.DateTimeFormatter;
 
 import javax.annotation.Nullable;
 import java.util.Collections;
-import java.util.Objects;
 import java.util.Set;
 
 import static com.google.common.base.Preconditions.checkNotNull;

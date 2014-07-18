@@ -1,6 +1,7 @@
 package com.bazaarvoice.dropwizard.caching;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
+import com.yammer.metrics.core.MetricsRegistry;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 
@@ -29,7 +30,7 @@ public class CachingConfiguration {
         _storeFactory = checkNotNull(storeFactory);
     }
 
-    public ResponseCache buildCache() {
-        return new ResponseCache(_local.buildCache(), _storeFactory.createStore());
+    public ResponseCache buildCache(MetricsRegistry metricsRegistry) {
+        return new ResponseCache(_local.buildCache(), _storeFactory.createStore(), metricsRegistry);
     }
 }

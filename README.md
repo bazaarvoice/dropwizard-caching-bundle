@@ -154,7 +154,7 @@ cache:
 ## Short Term
 
 * More logging
-* Metrics reporting
+* New metric: local cache size in bytes
 * Testing
 * More efficient operation when caching is not being used, but cache-control header is being generated
     * No need to capture response content or deal with ResponseCache at all
