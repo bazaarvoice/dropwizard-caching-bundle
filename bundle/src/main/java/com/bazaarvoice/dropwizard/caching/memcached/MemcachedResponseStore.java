@@ -67,19 +67,21 @@ public class MemcachedResponseStore extends ResponseStore {
     }
 
     private String buildKey(String key) {
-        if (_keyPrefix.length() == 0) {
-            return key;
+        String result = encodeAscii(key);
+
+        if (_keyPrefix.length() > 0) {
+            StringBuilder buffer = new StringBuilder(_keyPrefix.length() + 1 + key.length());
+            buffer.append(_keyPrefix);
+
+            if (key.charAt(0) != KEY_PREFIX_SEPARATOR) {
+                buffer.append(KEY_PREFIX_SEPARATOR);
+            }
+
+            buffer.append(key);
+            result = buffer.toString();
         }
 
-        StringBuilder buffer = new StringBuilder(_keyPrefix.length() + 1 + key.length());
-        buffer.append(_keyPrefix);
-
-        if (key.charAt(0) != KEY_PREFIX_SEPARATOR) {
-            buffer.append(KEY_PREFIX_SEPARATOR);
-        }
-
-        buffer.append(encodeAscii(key));
-        return buffer.toString();
+         return result;
     }
 
     private String encodeAscii(String value) {
