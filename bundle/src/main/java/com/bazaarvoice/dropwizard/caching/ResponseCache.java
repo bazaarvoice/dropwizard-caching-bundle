@@ -110,7 +110,7 @@ public class ResponseCache {
     private static String buildKey(CacheRequestContext request) {
         StringBuilder buffer = new StringBuilder();
         buffer.append(request.getRequestMethod());
-        buffer.append(' ');
+        buffer.append(':');
 
         URI requestUri = request.getRequestUri();
         String query = requestUri.getRawQuery();

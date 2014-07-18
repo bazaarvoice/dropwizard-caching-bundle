@@ -3,10 +3,12 @@ package com.bazaarvoice.dropwizard.caching.memcached;
 import com.bazaarvoice.dropwizard.caching.CachedResponse;
 import com.bazaarvoice.dropwizard.caching.ResponseStore;
 import com.google.common.base.Optional;
+import com.google.common.base.Throwables;
 import net.spy.memcached.MemcachedClient;
 import org.joda.time.DateTime;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+
+import java.io.UnsupportedEncodingException;
+import java.net.URLEncoder;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 
@@ -25,6 +27,8 @@ public class MemcachedResponseStore extends ResponseStore {
 
         _client = checkNotNull(client);
         _readOnly = readOnly;
+
+        keyPrefix = encodeAscii(keyPrefix);
 
         if (keyPrefix.length() > 0 && keyPrefix.charAt(keyPrefix.length() - 1) == KEY_PREFIX_SEPARATOR) {
             _keyPrefix = keyPrefix.substring(0, keyPrefix.lastIndexOf(KEY_PREFIX_SEPARATOR));
@@ -74,7 +78,16 @@ public class MemcachedResponseStore extends ResponseStore {
             buffer.append(KEY_PREFIX_SEPARATOR);
         }
 
-        buffer.append(key);
+        buffer.append(encodeAscii(key));
         return buffer.toString();
+    }
+
+    private String encodeAscii(String value) {
+        try {
+            return URLEncoder.encode(value, "us-ascii");
+        } catch (UnsupportedEncodingException ex) {
+            // US ASCII should be supported everywhere, so this exception should not occur
+            throw Throwables.propagate(ex);
+        }
     }
 }
