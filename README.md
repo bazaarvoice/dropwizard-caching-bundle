@@ -116,6 +116,9 @@ cacheControl:
 After setting the cache control options, an in-process response cache can be enabled, possibly
 backed by an external store.
 
+The local, in-process cache and the external store can be used independently of each other. For
+example, with no local cache, the store will be queried for each request.
+
 ```yaml
 cache:
     # Optional. Configuration options for the local, in-memory cache. If no options are specified,
