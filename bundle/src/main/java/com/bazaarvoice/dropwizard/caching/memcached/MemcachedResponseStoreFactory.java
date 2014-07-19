@@ -10,6 +10,7 @@ import com.google.common.base.Throwables;
 import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableList;
 import com.google.common.net.HostAndPort;
+import net.spy.memcached.BinaryConnectionFactory;
 import net.spy.memcached.MemcachedClient;
 
 import java.io.IOException;
@@ -81,7 +82,8 @@ public class MemcachedResponseStoreFactory implements ResponseStoreFactory {
             if (getServers().size() == 0) {
                 return ResponseStore.NULL_STORE;
             } else {
-                return new MemcachedResponseStore(new MemcachedClient(getServers()), _keyPrefix, _readOnly);
+                MemcachedClient client = new MemcachedClient(new BinaryConnectionFactory(), getServers());
+                return new MemcachedResponseStore(client, _keyPrefix, _readOnly);
             }
         } catch (IOException ex) {
             throw Throwables.propagate(ex);
