@@ -165,6 +165,8 @@ cache:
 ## Long Term
 
 * Custom cache key generator implementation
+* Admin port tool to configure caching on the fly
+* API to evict things from the cache in code (for example: evict when POST updates a record)
 
 ## Unsupported HTTP Headers
 
