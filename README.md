@@ -163,6 +163,15 @@ cache:
         readOnly: Boolean    # True to only read from the cache, but not update. Default false.
 ```
 
+#### Memcached Requirements
+
+The memcached server must support the memcached binary protocol.
+
+#### Keys
+
+Memcached limits keys to 250 bytes. If the key is longer than 250 bytes, the memcached store will
+hash the original key, truncate the key, and append the hash.
+
 # TODO
 
 ## Short Term
