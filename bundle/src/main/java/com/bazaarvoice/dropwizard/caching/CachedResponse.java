@@ -12,8 +12,10 @@ import javax.ws.rs.core.CacheControl;
 import javax.ws.rs.core.HttpHeaders;
 import javax.ws.rs.core.MultivaluedMap;
 import javax.ws.rs.core.Response;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Set;
 
 import static com.google.common.base.Preconditions.checkNotNull;
@@ -49,6 +51,29 @@ public class CachedResponse {
         _responseContent = checkNotNull(content);
     }
 
+    @Override
+    public int hashCode() {
+        int hash = 234290234;
+        hash = (31 * hash) + _statusCode;
+        hash = (31 * hash) + hashCode(_responseHeaders);
+        hash = (31 * hash) + Arrays.hashCode(_responseContent);
+        return hash;
+    }
+
+    @Override
+    public boolean equals(Object obj) {
+        if (!(obj instanceof CachedResponse)) {
+            return false;
+        } else if (obj == this) {
+            return true;
+        }
+
+        CachedResponse other = (CachedResponse) obj;
+        return _statusCode == other._statusCode &&
+                Arrays.equals(_responseContent, other._responseContent) &&
+                equals(_responseHeaders, other._responseHeaders);
+    }
+
     public static CachedResponse build(int statusCode, MultivaluedMap<String, Object> headers, byte[] content) {
         checkNotNull(headers);
         return new CachedResponse(statusCode, copyHeaders(headers.entrySet()), content);
@@ -67,6 +92,54 @@ public class CachedResponse {
         }
 
         return responseBuilder;
+    }
+
+    private static boolean equals(MultivaluedMap<String, String> headers1, MultivaluedMap<String, String> headers2) {
+        for (Map.Entry<String, List<String>> h1 : headers1.entrySet()) {
+            if (!equals(h1.getValue(), headers2.get(h1.getKey()))) {
+                return false;
+            }
+        }
+
+        for (String key : headers2.keySet()) {
+            if (!headers1.containsKey(key)) {
+                return false;
+            }
+        }
+
+        return true;
+    }
+
+    private static boolean equals(List<String> l1, List<String> l2) {
+        if (l1 == null) {
+            return l2 == null;
+        } else if (l2 == null) {
+            return false;
+        } else if (l1.size() != l2.size()) {
+            return false;
+        }
+
+        for (int i = 0; i < l1.size(); i += 1) {
+            if (!Objects.equals(l1.get(i), l2.get(i))) {
+                return false;
+            }
+        }
+
+        return true;
+    }
+
+    private static int hashCode(MultivaluedMap<String, String> headers) {
+        int hash = 3402034;
+
+        for (Map.Entry<String, List<String>> header : headers.entrySet()) {
+            hash = (31 * hash) + header.getKey().toLowerCase().hashCode();
+
+            for (String value : header.getValue()) {
+                hash = (31 * hash) + value.hashCode();
+            }
+        }
+
+        return hash;
     }
 
     private static MultivaluedMap<String, String> copyHeaders(Iterable<Map.Entry<String, List<Object>>> headers) {
