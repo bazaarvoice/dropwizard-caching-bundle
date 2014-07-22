@@ -51,31 +51,34 @@ public class CacheRequestContext {
             MessageDigest digest = MessageDigest.getInstance("SHA-1");
 
             for (String header : KEY_HEADERS) {
-                digest.update(header.getBytes(Charsets.UTF_8));
-                digest.update((byte) 0xFD);
-
                 List<String> headerValues = request.getRequestHeader(header);
 
                 if (headerValues != null && headerValues.size() > 0) {
+                    digest.update(header.getBytes(Charsets.UTF_8));
+                    digest.update((byte) 0xFD);
+
                     for (String value : headerValues) {
                         digest.update(value.getBytes(Charsets.UTF_8));
                         digest.update((byte) 0xFE);
                     }
-                }
 
-                digest.update((byte) 0xFF);
+                    digest.update((byte) 0xFF);
+                }
             }
 
-            digest.update("Body".getBytes(Charsets.UTF_8));
-            digest.update((byte) 0xFD);
-
             byte[] requestBody = request.getEntity(byte[].class);
+
             if (requestBody == null) {
                 requestBody = new byte[0];
             }
 
-            digest.update(requestBody);
-            digest.update((byte) 0xFF);
+            if (requestBody.length > 0) {
+                digest.update("Body".getBytes(Charsets.UTF_8));
+                digest.update((byte) 0xFD);
+
+                digest.update(requestBody);
+                digest.update((byte) 0xFF);
+            }
 
             request.setEntityInputStream(new ByteArrayInputStream(requestBody));
 
