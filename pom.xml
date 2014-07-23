@@ -5,7 +5,7 @@
     <parent>
         <groupId>com.bazaarvoice.dropwizard</groupId>
         <artifactId>parent</artifactId>
-        <version>0.0.9</version>
+        <version>0.0.10-SNAPSHOT</version>
         <relativePath>parent/pom.xml</relativePath>
     </parent>
 
@@ -18,7 +18,7 @@
         <url>https://github.com/bazaarvoice/dropwizard-caching-bundle</url>
         <connection>scm:git:git@github.com:bazaarvoice/dropwizard-caching-bundle.git</connection>
         <developerConnection>scm:git:git@github.com:bazaarvoice/dropwizard-caching-bundle.git</developerConnection>
-        <tag>dropwizard-caching-bundle-complete-0.0.9</tag>
+        <tag>HEAD</tag>
     </scm>
 
     <modules>
