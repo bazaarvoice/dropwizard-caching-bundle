@@ -21,7 +21,7 @@
 
         <dropwizard.version>0.6.2</dropwizard.version>
 
-        <spymemcached.version>2.11.3</spymemcached.version>
+        <spymemcached.version>2.11.4</spymemcached.version>
 
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
