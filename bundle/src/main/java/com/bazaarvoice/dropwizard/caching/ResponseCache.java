@@ -362,10 +362,11 @@ public class ResponseCache {
 
             try {
                 response = _delegate.get(key, loader);
-            } catch (CacheKeyNotFoundException ex) {
-                response = null;
             } catch (Throwable ex) {
-                LOG.warn("Failed to load response from cache: key={}", key, ex);
+                if (!(ex.getCause() instanceof CacheKeyNotFoundException)) {
+                    LOG.warn("Failed to load response from cache: key={}", key, ex);
+                }
+
                 response = null;
             }
 
