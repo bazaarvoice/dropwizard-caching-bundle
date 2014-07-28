@@ -171,29 +171,3 @@ The memcached server must support the memcached binary protocol.
 
 Memcached limits keys to 250 bytes. If the key is longer than 250 bytes, the memcached store will
 hash the original key, truncate the key, and append the hash.
-
-# TODO
-
-## Short Term
-
-* More logging
-* New metric: local cache size in bytes
-* Testing
-* More efficient operation when caching is not being used, but cache-control header is being generated
-    * No need to capture response content or deal with ResponseCache at all
-
-## Long Term
-
-* Custom cache key generator implementation
-* Admin port tool to configure caching on the fly
-* API to evict things from the cache in code (for example: evict when POST updates a record)
-
-## Unsupported HTTP Headers
-
-* Vary
-    * Right now hard coded to vary on: ACCEPT, ACCEPT-ENCODING, ACCEPT-LANGUAGE, ACCEPT-CHARSET
-* Expect
-* If-Match, If-None-Match
-* If-Modified-Since, If-Unmodified-Since
-* Cache-Control: no-cache fields, private fields
-    * no-cache with fields and private with fields are simply treated as a bare no-cache/private directive
