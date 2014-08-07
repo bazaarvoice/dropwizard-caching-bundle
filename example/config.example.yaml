@@ -1,6 +1,6 @@
 cache:
   local:
-    maximumSize: 5
+    maximumSize: 5MB
     expire: 30m
 
   store:
