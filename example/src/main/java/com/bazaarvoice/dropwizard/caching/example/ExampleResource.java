@@ -16,6 +16,7 @@
 package com.bazaarvoice.dropwizard.caching.example;
 
 import com.bazaarvoice.dropwizard.caching.CacheGroup;
+import com.bazaarvoice.dropwizard.caching.IncludeBodyInCacheKey;
 import com.bazaarvoice.dropwizard.caching.Vary;
 import com.google.common.base.Function;
 import com.google.common.collect.FluentIterable;
@@ -54,6 +55,7 @@ public class ExampleResource {
     @POST
     @Path("/test2")
     @CacheGroup("otterpop")
+    @IncludeBodyInCacheKey
     public List<ExampleResult> postIt(List<Integer> values) {
         return FluentIterable
                 .from(values)
