@@ -56,7 +56,7 @@ public class CacheRequestContext {
         _requestHash = checkNotNull(requestHash);
     }
 
-    public static CacheRequestContext build(ContainerRequest request, Set<String> vary) {
+    public static CacheRequestContext build(ContainerRequest request, Set<String> vary, boolean includeBody) {
         try {
             MessageDigest digest = MessageDigest.getInstance("SHA-1");
 
@@ -76,21 +76,23 @@ public class CacheRequestContext {
                 }
             }
 
-            byte[] requestBody = request.getEntity(byte[].class);
+            if (includeBody) {
+                byte[] requestBody = request.getEntity(byte[].class);
 
-            if (requestBody == null) {
-                requestBody = new byte[0];
+                if (requestBody == null) {
+                    requestBody = new byte[0];
+                }
+
+                if (requestBody.length > 0) {
+                    digest.update("Body".getBytes(Charsets.UTF_8));
+                    digest.update((byte) 0xFD);
+
+                    digest.update(requestBody);
+                    digest.update((byte) 0xFF);
+                }
+
+                request.setEntityInputStream(new ByteArrayInputStream(requestBody));
             }
-
-            if (requestBody.length > 0) {
-                digest.update("Body".getBytes(Charsets.UTF_8));
-                digest.update((byte) 0xFD);
-
-                digest.update(requestBody);
-                digest.update((byte) 0xFF);
-            }
-
-            request.setEntityInputStream(new ByteArrayInputStream(requestBody));
 
             String hash = new String(Base64.encode(digest.digest()), Charsets.US_ASCII);
             return new CacheRequestContext(request.getMethod(), request.getRequestUri(), request.getRequestHeaders(), hash);

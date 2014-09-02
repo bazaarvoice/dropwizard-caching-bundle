@@ -78,6 +78,7 @@ public class CacheResourceMethodDispatchAdapter implements ResourceMethodDispatc
             RequestDispatcher dispatcher = _provider.create(abstractResourceMethod);
             CacheGroup groupNameAnn = abstractResourceMethod.getAnnotation(CacheGroup.class);
             Vary varyAnn = abstractResourceMethod.getAnnotation(Vary.class);
+            IncludeBodyInCacheKey includeBodyInCacheKeyAnn = abstractResourceMethod.getAnnotation(IncludeBodyInCacheKey.class);
 
             Set<String> vary = ImmutableSet.of();
 
@@ -87,14 +88,16 @@ public class CacheResourceMethodDispatchAdapter implements ResourceMethodDispatc
                         Predicates.notNull()));
             }
 
+            boolean includeBodyInCacheKey = includeBodyInCacheKeyAnn != null && includeBodyInCacheKeyAnn.enabled();
+
             if (groupNameAnn != null || abstractResourceMethod.isAnnotationPresent(CacheControl.class)) {
                 String groupName = groupNameAnn == null ? "" : groupNameAnn.value();
-                dispatcher = new CachingDispatcher(dispatcher, _cache, _cacheControlMapper.apply(groupName), vary);
+                dispatcher = new CachingDispatcher(dispatcher, _cache, _cacheControlMapper.apply(groupName), vary, includeBodyInCacheKey);
             } else if (abstractResourceMethod.getHttpMethod().equals("GET")) {
                 Optional<String> cacheControlOverride = _cacheControlMapper.apply("");
 
                 if (cacheControlOverride != null && cacheControlOverride.isPresent()) {
-                    dispatcher = new CachingDispatcher(dispatcher, _cache, cacheControlOverride, vary);
+                    dispatcher = new CachingDispatcher(dispatcher, _cache, cacheControlOverride, vary, includeBodyInCacheKey);
                 }
             }
 
@@ -108,13 +111,15 @@ public class CacheResourceMethodDispatchAdapter implements ResourceMethodDispatc
         private final Optional<String> _cacheControlHeader;
         private final Set<String> _vary;
         private final String _varyHeader;
+        private final boolean _includeBodyInCacheKey;
 
-        public CachingDispatcher(RequestDispatcher dispatcher, ResponseCache cache, Optional<String> cacheControlHeader, Set<String> vary) {
+        public CachingDispatcher(RequestDispatcher dispatcher, ResponseCache cache, Optional<String> cacheControlHeader, Set<String> vary, boolean includeBodyInCacheKey) {
             _dispatcher = checkNotNull(dispatcher);
             _cache = checkNotNull(cache);
             _cacheControlHeader = checkNotNull(cacheControlHeader);
             _vary = checkNotNull(vary);
             _varyHeader = vary.size() == 0 ? "" : Joiner.on(", ").join(_vary);
+            _includeBodyInCacheKey = includeBodyInCacheKey;
         }
 
         @Override
@@ -128,7 +133,7 @@ public class CacheResourceMethodDispatchAdapter implements ResourceMethodDispatc
                     return;
                 }
 
-                CacheRequestContext request = CacheRequestContext.build((ContainerRequest) context.getRequest(), _vary);
+                CacheRequestContext request = CacheRequestContext.build((ContainerRequest) context.getRequest(), _vary, _includeBodyInCacheKey);
                 Optional<Response> cacheResponse = _cache.get(request);
 
                 if (cacheResponse.isPresent()) {
