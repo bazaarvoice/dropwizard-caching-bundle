@@ -16,6 +16,7 @@
 package com.bazaarvoice.dropwizard.caching.example;
 
 import com.bazaarvoice.dropwizard.caching.CacheGroup;
+import com.bazaarvoice.dropwizard.caching.Vary;
 import com.google.common.base.Function;
 import com.google.common.collect.FluentIterable;
 import com.sun.jersey.api.core.HttpContext;
@@ -38,6 +39,7 @@ public class ExampleResource {
     @Path("/test")
     @CacheControl(maxAge = 60)
     @CacheGroup("otter")
+    @Vary({"ACCEPT", "ACCEPT-LANGUAGE"})
     public ExampleResult getTestData(@Context HttpContext requestContext) {
 //        throw new RuntimeException("uh oh");
         return new ExampleResult(_count++);

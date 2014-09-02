@@ -16,8 +16,12 @@
 package com.bazaarvoice.dropwizard.caching;
 
 import com.google.common.base.Function;
+import com.google.common.base.Joiner;
 import com.google.common.base.Optional;
+import com.google.common.base.Predicates;
 import com.google.common.base.Throwables;
+import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.Iterables;
 import com.sun.jersey.api.core.HttpContext;
 import com.sun.jersey.api.model.AbstractResourceMethod;
 import com.sun.jersey.spi.container.ContainerRequest;
@@ -34,9 +38,12 @@ import javax.ws.rs.ext.Provider;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.OutputStream;
+import java.util.Arrays;
+import java.util.Set;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 import static com.google.common.net.HttpHeaders.CACHE_CONTROL;
+import static com.google.common.net.HttpHeaders.VARY;
 
 /**
  * Wraps resource methods that are configured for request caching.
@@ -70,15 +77,24 @@ public class CacheResourceMethodDispatchAdapter implements ResourceMethodDispatc
         public RequestDispatcher create(AbstractResourceMethod abstractResourceMethod) {
             RequestDispatcher dispatcher = _provider.create(abstractResourceMethod);
             CacheGroup groupNameAnn = abstractResourceMethod.getAnnotation(CacheGroup.class);
+            Vary varyAnn = abstractResourceMethod.getAnnotation(Vary.class);
+
+            Set<String> vary = ImmutableSet.of();
+
+            if (varyAnn != null && varyAnn.value() != null) {
+                vary = HttpHeaderUtils.headerNames(Iterables.filter(
+                        Arrays.asList(varyAnn.value()),
+                        Predicates.notNull()));
+            }
 
             if (groupNameAnn != null || abstractResourceMethod.isAnnotationPresent(CacheControl.class)) {
                 String groupName = groupNameAnn == null ? "" : groupNameAnn.value();
-                dispatcher = new CachingDispatcher(dispatcher, _cache, _cacheControlMapper.apply(groupName));
+                dispatcher = new CachingDispatcher(dispatcher, _cache, _cacheControlMapper.apply(groupName), vary);
             } else if (abstractResourceMethod.getHttpMethod().equals("GET")) {
                 Optional<String> cacheControlOverride = _cacheControlMapper.apply("");
 
                 if (cacheControlOverride != null && cacheControlOverride.isPresent()) {
-                    dispatcher = new CachingDispatcher(dispatcher, _cache, cacheControlOverride);
+                    dispatcher = new CachingDispatcher(dispatcher, _cache, cacheControlOverride, vary);
                 }
             }
 
@@ -90,17 +106,29 @@ public class CacheResourceMethodDispatchAdapter implements ResourceMethodDispatc
         private final RequestDispatcher _dispatcher;
         private final ResponseCache _cache;
         private final Optional<String> _cacheControlHeader;
+        private final Set<String> _vary;
+        private final String _varyHeader;
 
-        public CachingDispatcher(RequestDispatcher dispatcher, ResponseCache cache, Optional<String> cacheControlHeader) {
+        public CachingDispatcher(RequestDispatcher dispatcher, ResponseCache cache, Optional<String> cacheControlHeader, Set<String> vary) {
             _dispatcher = checkNotNull(dispatcher);
             _cache = checkNotNull(cache);
             _cacheControlHeader = checkNotNull(cacheControlHeader);
+            _vary = checkNotNull(vary);
+            _varyHeader = vary.size() == 0 ? "" : Joiner.on(", ").join(_vary);
         }
 
         @Override
         public void dispatch(Object resource, HttpContext context) {
             try {
-                CacheRequestContext request = CacheRequestContext.build((ContainerRequest) context.getRequest());
+                if (_vary.contains("*")) {
+                    // Response varies on aspects besides the HTTP request headers. Therefore, the
+                    // response can not be provided from a cache.
+                    _dispatcher.dispatch(resource, context);
+                    context.getResponse().getHttpHeaders().add(VARY, _varyHeader);
+                    return;
+                }
+
+                CacheRequestContext request = CacheRequestContext.build((ContainerRequest) context.getRequest(), _vary);
                 Optional<Response> cacheResponse = _cache.get(request);
 
                 if (cacheResponse.isPresent()) {
@@ -110,6 +138,7 @@ public class CacheResourceMethodDispatchAdapter implements ResourceMethodDispatc
                     ContainerResponse response = (ContainerResponse) context.getResponse();
                     response.setContainerResponseWriter(new CachingResponseWriter(response.getContainerResponseWriter(), request, _cache, _cacheControlHeader));
                     _dispatcher.dispatch(resource, context);
+                    context.getResponse().getHttpHeaders().add(VARY, _varyHeader);
                 }
             } catch (Exception ex) {
                 throw Throwables.propagate(ex);

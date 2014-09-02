@@ -30,6 +30,7 @@ import java.util.Collections;
 import java.util.Set;
 
 import static com.google.common.base.Preconditions.checkNotNull;
+import static com.google.common.collect.Lists.newArrayList;
 
 class HttpHeaderUtils {
     private static final Joiner HEADER_VALUE_JOINER = Joiner.on(", ").skipNulls();
@@ -97,6 +98,13 @@ class HttpHeaderUtils {
      * Generate an immutable, case-insensitive set of HTTP header names.
      */
     public static Set<String> headerNames(String... names) {
+        return headerNames(newArrayList(names));
+    }
+
+    /**
+     * Generate an immutable, case-insensitive set of HTTP header names.
+     */
+    public static Set<String> headerNames(Iterable<String> names) {
         // Only the keys of the map are used. The value of the map is not used.
         StringKeyIgnoreCaseMultivaluedMap<Object> headers = new StringKeyIgnoreCaseMultivaluedMap<Object>();
 

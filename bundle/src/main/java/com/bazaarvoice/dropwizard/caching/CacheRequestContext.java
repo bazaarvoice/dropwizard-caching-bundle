@@ -28,14 +28,10 @@ import java.net.URI;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.util.List;
+import java.util.Set;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 import static com.google.common.base.Strings.isNullOrEmpty;
-import static com.google.common.collect.Lists.newArrayList;
-import static com.google.common.net.HttpHeaders.ACCEPT;
-import static com.google.common.net.HttpHeaders.ACCEPT_CHARSET;
-import static com.google.common.net.HttpHeaders.ACCEPT_ENCODING;
-import static com.google.common.net.HttpHeaders.ACCEPT_LANGUAGE;
 import static com.google.common.net.HttpHeaders.CACHE_CONTROL;
 import static com.google.common.net.HttpHeaders.PRAGMA;
 
@@ -43,7 +39,6 @@ import static com.google.common.net.HttpHeaders.PRAGMA;
  * Cache related context information for a request.
  */
 public class CacheRequestContext {
-    private static final List<String> KEY_HEADERS = newArrayList(ACCEPT, ACCEPT_ENCODING, ACCEPT_LANGUAGE, ACCEPT_CHARSET);
     private static final Logger LOG = LoggerFactory.getLogger(CacheRequestContext.class);
 
     private final String _requestMethod;
@@ -61,11 +56,11 @@ public class CacheRequestContext {
         _requestHash = checkNotNull(requestHash);
     }
 
-    public static CacheRequestContext build(ContainerRequest request) {
+    public static CacheRequestContext build(ContainerRequest request, Set<String> vary) {
         try {
             MessageDigest digest = MessageDigest.getInstance("SHA-1");
 
-            for (String header : KEY_HEADERS) {
+            for (String header : vary) {
                 List<String> headerValues = request.getRequestHeader(header);
 
                 if (headerValues != null && headerValues.size() > 0) {
