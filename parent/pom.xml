@@ -11,7 +11,7 @@
 
     <groupId>com.bazaarvoice.dropwizard</groupId>
     <artifactId>parent</artifactId>
-    <version>1.0.0</version>
+    <version>1.0.1-SNAPSHOT</version>
     <packaging>pom</packaging>
 
     <name>Dropwizard Caching Bundle Parent</name>
@@ -109,8 +109,4 @@
         </dependencies>
 
     </dependencyManagement>
-
-  <scm>
-    <tag>dropwizard-caching-bundle-complete-1.0.0</tag>
-  </scm>
 </project>
