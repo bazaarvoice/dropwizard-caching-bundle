@@ -151,17 +151,27 @@ cache:
 
 To use a memcached cluster:
 
-Configure memcached
+1. Add the maven dependency:
 
-```yaml
-cache:
-    store:
-        type: memcached
-        servers:             # List of memcached server host or ip address and port
-            - localhost:11211
-        keyPrefix: String    # Prefix to add to all cache keys.
-        readOnly: Boolean    # True to only read from the cache, but not update. Default false.
-```
+    ```xml
+    <dependency>
+        <groupId>com.bazaarvoice.dropwizard</groupId>
+        <artifactId>dropwizard-caching-bundle-memcached</artifactId>
+        <version>${dropwizard-caching-bundle.version}</version>
+    </dependency>
+    ```
+
+2. Configure memcached
+
+    ```yaml
+    cache:
+        store:
+            type: memcached
+            servers:             # List of memcached server host or ip address and port
+                - localhost:11211
+            keyPrefix: String    # Prefix to add to all cache keys.
+            readOnly: Boolean    # True to only read from the cache, but not update. Default false.
+    ```
 
 #### Memcached Requirements
 

@@ -16,11 +16,11 @@
 package com.bazaarvoice.dropwizard.caching.example;
 
 import com.bazaarvoice.dropwizard.caching.CachingBundle;
-import com.yammer.dropwizard.Service;
-import com.yammer.dropwizard.config.Bootstrap;
-import com.yammer.dropwizard.config.Environment;
+import io.dropwizard.Application;
+import io.dropwizard.setup.Bootstrap;
+import io.dropwizard.setup.Environment;
 
-public class ExampleService extends Service<ExampleConfiguration> {
+public class ExampleApplication extends Application<ExampleConfiguration> {
     @Override
     public void initialize(Bootstrap<ExampleConfiguration> bootstrap) {
         bootstrap.addBundle(new CachingBundle());
@@ -28,10 +28,10 @@ public class ExampleService extends Service<ExampleConfiguration> {
 
     @Override
     public void run(ExampleConfiguration configuration, Environment environment) throws Exception {
-        environment.addResource(ExampleResource.class);
+        environment.jersey().register(ExampleResource.class);
     }
 
     public static void main(String[] args) throws Exception {
-        new ExampleService().run(args);
+        new ExampleApplication().run(args);
     }
 }

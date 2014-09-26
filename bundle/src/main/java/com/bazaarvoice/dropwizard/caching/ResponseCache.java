@@ -15,11 +15,11 @@
  */
 package com.bazaarvoice.dropwizard.caching;
 
+import com.codahale.metrics.Counter;
+import com.codahale.metrics.Gauge;
+import com.codahale.metrics.MetricRegistry;
 import com.google.common.base.Optional;
 import com.google.common.cache.Cache;
-import com.yammer.metrics.core.Counter;
-import com.yammer.metrics.core.Gauge;
-import com.yammer.metrics.core.MetricsRegistry;
 import org.joda.time.DateTime;
 import org.joda.time.Seconds;
 import org.slf4j.Logger;
@@ -41,16 +41,16 @@ public class ResponseCache {
     private final Counter _hits;
     private final Counter _misses;
 
-    public ResponseCache(Cache<String, CachedResponse> localCache, ResponseStore store, MetricsRegistry metricsRegistry) {
+    public ResponseCache(Cache<String, CachedResponse> localCache, ResponseStore store, MetricRegistry metricRegistry) {
         checkNotNull(localCache, "localCache");
         checkNotNull(store, "store");
-        checkNotNull(metricsRegistry, "metricsRegistry");
+        checkNotNull(metricRegistry, "metricRegistry");
 
-        _localCache = new LocalCache(localCache, metricsRegistry);
-        _store = failTrap(store, metricsRegistry);
+        _localCache = new LocalCache(localCache, metricRegistry);
+        _store = failTrap(store, metricRegistry);
 
-        _hits = newCounter(metricsRegistry, "hits");
-        _misses = newCounter(metricsRegistry, "misses");
+        _hits = newCounter(metricRegistry, "hits");
+        _misses = newCounter(metricRegistry, "misses");
     }
 
     public Optional<Response> get(CacheRequestContext request) {
@@ -266,8 +266,8 @@ public class ResponseCache {
         }
     }
 
-    private static Counter newCounter(MetricsRegistry registry, String name) {
-        return registry.newCounter(ResponseCache.class, name);
+    private static Counter newCounter(MetricRegistry registry, String name) {
+        return registry.counter(MetricRegistry.name(ResponseCache.class, name));
     }
 
     private static class CacheKeyNotFoundException extends RuntimeException {
@@ -277,11 +277,11 @@ public class ResponseCache {
      * Wrap the given store so that any exceptions for store methods are logged with the given logger and not
      * propagated. If the store is absent, {@link ResponseStore#NULL_STORE} is returned.
      */
-    private static ResponseStore failTrap(ResponseStore store, MetricsRegistry metricsRegistry) {
+    private static ResponseStore failTrap(ResponseStore store, MetricRegistry metricRegistry) {
         if (store == ResponseStore.NULL_STORE) {
             return ResponseStore.NULL_STORE;
         } else {
-            return new FailTrap(store, metricsRegistry);
+            return new FailTrap(store, metricRegistry);
         }
     }
 
@@ -293,14 +293,14 @@ public class ResponseCache {
         private final Counter _evictions;
         private final ResponseStore _delegate;
 
-        public FailTrap(ResponseStore delegate, MetricsRegistry metricsRegistry) {
+        public FailTrap(ResponseStore delegate, MetricRegistry metricRegistry) {
             _delegate = checkNotNull(delegate);
 
-            _hits = newCounter(metricsRegistry, "store-hits");
-            _misses = newCounter(metricsRegistry, "store-misses");
-            _exceptions = newCounter(metricsRegistry, "store-exceptions");
-            _puts = newCounter(metricsRegistry, "store-puts");
-            _evictions = newCounter(metricsRegistry, "store-evictions");
+            _hits = newCounter(metricRegistry, "store-hits");
+            _misses = newCounter(metricRegistry, "store-misses");
+            _exceptions = newCounter(metricRegistry, "store-exceptions");
+            _puts = newCounter(metricRegistry, "store-puts");
+            _evictions = newCounter(metricRegistry, "store-evictions");
         }
 
         @Override
@@ -352,19 +352,20 @@ public class ResponseCache {
         private final Counter _misses;
         private final Counter _evictions;
 
-        public LocalCache(Cache<String, CachedResponse> delegate, MetricsRegistry metricsRegistry) {
+        public LocalCache(Cache<String, CachedResponse> delegate, MetricRegistry metricRegistry) {
             _delegate = checkNotNull(delegate);
 
-            _hits = newCounter(metricsRegistry, "local-hits");
-            _misses = newCounter(metricsRegistry, "local-misses");
-            _evictions = newCounter(metricsRegistry, "local-evictions");
+            _hits = newCounter(metricRegistry, "local-hits");
+            _misses = newCounter(metricRegistry, "local-misses");
+            _evictions = newCounter(metricRegistry, "local-evictions");
 
-            metricsRegistry.newGauge(ResponseCache.class, "local-count", new Gauge<Long>() {
-                @Override
-                public Long value() {
-                    return _delegate.size();
-                }
-            });
+            metricRegistry.register(MetricRegistry.name(ResponseCache.class, "local-count"),
+                    new Gauge<Long>() {
+                        @Override
+                        public Long getValue() {
+                            return _delegate.size();
+                        }
+                    });
         }
 
         public void invalidate(String key) {

@@ -21,7 +21,7 @@ import com.bazaarvoice.dropwizard.caching.Vary;
 import com.google.common.base.Function;
 import com.google.common.collect.FluentIterable;
 import com.sun.jersey.api.core.HttpContext;
-import com.yammer.dropwizard.jersey.caching.CacheControl;
+import io.dropwizard.jersey.caching.CacheControl;
 
 import javax.ws.rs.GET;
 import javax.ws.rs.POST;

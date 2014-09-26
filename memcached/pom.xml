@@ -8,14 +8,20 @@
         <relativePath>../parent/pom.xml</relativePath>
     </parent>
 
-    <name>Dropwizard Caching Bundle</name>
-    <artifactId>dropwizard-caching-bundle</artifactId>
+    <name>Dropwizard Caching Bundle - Memcached</name>
+    <artifactId>dropwizard-caching-bundle-memcached</artifactId>
 
     <dependencies>
 
         <dependency>
-            <groupId>io.dropwizard</groupId>
-            <artifactId>dropwizard-core</artifactId>
+            <groupId>com.bazaarvoice.dropwizard</groupId>
+            <artifactId>dropwizard-caching-bundle</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+
+        <dependency>
+            <groupId>net.spy</groupId>
+            <artifactId>spymemcached</artifactId>
         </dependency>
 
         <dependency>

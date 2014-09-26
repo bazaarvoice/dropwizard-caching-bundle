@@ -19,8 +19,8 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 import com.google.common.base.Optional;
 import com.google.common.cache.Cache;
 import com.google.common.cache.CacheBuilder;
-import com.yammer.dropwizard.util.Duration;
-import com.yammer.dropwizard.util.Size;
+import io.dropwizard.util.Duration;
+import io.dropwizard.util.Size;
 
 import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkNotNull;

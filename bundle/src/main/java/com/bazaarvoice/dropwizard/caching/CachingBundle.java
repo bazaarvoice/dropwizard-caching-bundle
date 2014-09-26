@@ -15,13 +15,12 @@
  */
 package com.bazaarvoice.dropwizard.caching;
 
+import com.codahale.metrics.MetricRegistry;
 import com.google.common.base.Function;
 import com.google.common.base.Optional;
-import com.yammer.dropwizard.ConfiguredBundle;
-import com.yammer.dropwizard.config.Bootstrap;
-import com.yammer.dropwizard.config.Environment;
-import com.yammer.metrics.Metrics;
-import com.yammer.metrics.core.MetricsRegistry;
+import io.dropwizard.ConfiguredBundle;
+import io.dropwizard.setup.Bootstrap;
+import io.dropwizard.setup.Environment;
 
 import javax.servlet.Filter;
 import javax.servlet.FilterChain;
@@ -54,13 +53,12 @@ public class CachingBundle implements ConfiguredBundle<CachingBundleConfiguratio
 
     @Override
     public void run(CachingBundleConfiguration configuration, Environment environment) {
-        MetricsRegistry metricsRegistry = Metrics.defaultRegistry();
         Function<String, Optional<String>> cacheControlMapper = configuration.getCacheControl().buildMapper();
-        ResponseCache responseCache = configuration.getCache().buildCache(metricsRegistry);
+        ResponseCache responseCache = configuration.getCache().buildCache(environment.metrics());
 
-        environment.addProvider(new CacheResourceMethodDispatchAdapter(responseCache, cacheControlMapper));
+        environment.jersey().register(new CacheResourceMethodDispatchAdapter(responseCache, cacheControlMapper));
 
-        environment.addFilter(new Filter() {
+        environment.servlets().addFilter("dropwizard-cache", new Filter() {
             @Override
             public void init(FilterConfig filterConfig) throws ServletException {
                 // Nothing to do
@@ -86,6 +84,6 @@ public class CachingBundle implements ConfiguredBundle<CachingBundleConfiguratio
             public void destroy() {
                 // Nothing to do
             }
-        }, "*");
+        }).addMappingForUrlPatterns(null, false, "*");
     }
 }

@@ -30,7 +30,7 @@ import com.sun.jersey.spi.container.ContainerResponseWriter;
 import com.sun.jersey.spi.container.ResourceMethodDispatchAdapter;
 import com.sun.jersey.spi.container.ResourceMethodDispatchProvider;
 import com.sun.jersey.spi.dispatch.RequestDispatcher;
-import com.yammer.dropwizard.jersey.caching.CacheControl;
+import io.dropwizard.jersey.caching.CacheControl;
 
 import javax.ws.rs.WebApplicationException;
 import javax.ws.rs.core.Response;
